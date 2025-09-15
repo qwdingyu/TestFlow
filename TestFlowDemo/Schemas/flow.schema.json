@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/flow.schema.json",
+  "title": "Flow",
+  "type": "object",
+  "properties": {
+    "Model": { "type": "string", "minLength": 1 },
+    "TestSteps": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/step" }
+    }
+  },
+  "required": ["Model", "TestSteps"],
+  "additionalProperties": false,
+  "definitions": {
+    "step": {
+      "type": "object",
+      "properties": {
+        "Name": { "type": "string", "minLength": 1 },
+        "Description": { "type": "string" },
+        "Type": { "type": "string", "enum": ["Normal", "SubFlow", "SubFlowRef"] },
+        "Device": { "type": "string" },
+        "Command": { "type": "string" },
+        "Parameters": { "type": "object" },
+        "ExpectedResults": { "type": "object" },
+        "TimeoutMs": { "type": "integer", "minimum": 0 },
+        "DependsOn": { "type": "array", "items": { "type": "string" } },
+        "OnSuccess": { "type": "string" },
+        "OnFailure": { "type": "string" },
+        "Steps": { "type": "array", "items": { "$ref": "#/definitions/step" } },
+        "Ref": { "type": "string" }
+      },
+      "required": ["Name"],
+      "additionalProperties": true
+    }
+  }
+}
+

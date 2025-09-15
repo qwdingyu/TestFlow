@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net48;net7.0</TargetFrameworks>
+    <LangVersion>7.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>ZL.WorkflowLib</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Workflow\StepBodiesV1.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="WorkflowCore" Version="3.15.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.1.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="2.1.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="2.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ZL.DeviceLib\ZL.DeviceLib.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,79 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net48</TargetFramework>
+		<LangVersion>7.0</LangVersion>
+		<Nullable>disable</Nullable>
+		<AssemblyName>TestFlowDemo</AssemblyName>
+		<UseWindowsForms>true</UseWindowsForms>
+	</PropertyGroup>
+	<ItemGroup>
+		<Compile Remove="Program - 复制.cs" />
+		<Compile Remove="TestApp.cs" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Remove="Storage\Entities.sql" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="WorkflowCore" Version="3.15.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.1.1" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="2.1.1" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Console" Version="2.1.1" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+		<PackageReference Include="System.Data.SQLite.Core" Version="1.0.118" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Update="devices.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Entities.sql">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="infrastructure.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Flows\ABC_123.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Flows\E311.json">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Flows\E541.json">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Flows\Subflows\ecu_can_check.json">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Flows\Subflows\ecu_iv_check.json">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Flows\Subflows\ecu_power_on_check.json">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Flows\XYZ_999.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="docs\" />
+	</ItemGroup>
+    <ItemGroup>
+      <Compile Remove="Devices\**\*.cs" />
+      <Compile Remove="Engine\ParamInjector.cs" />
+      <Compile Remove="Engine\ResultEvaluator.cs" />
+      <Compile Remove="Engine\StepContext.cs" />
+      <Compile Remove="Engine\StepResultPool.cs" />
+      <Compile Remove="Engine\SubflowRegistry.cs" />
+      <Compile Remove="Engine\UiEventBus.cs" />
+      <Compile Remove="Engine\StepUtils.cs" />
+      <Compile Remove="Workflow\**\*.cs" />
+      <Compile Remove="Storage\**\*.cs" />
+      <Compile Remove="Models\**\*.cs" />
+      <Compile Remove="TestRunner.cs" />
+      <Compile Remove="AppServices.cs" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\Libraries\ZL.DeviceLib\ZL.DeviceLib.csproj" />
+      <ProjectReference Include="..\Libraries\ZL.WorkflowLib\ZL.WorkflowLib.csproj" />
+    </ItemGroup>
+</Project>

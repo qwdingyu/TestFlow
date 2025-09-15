@@ -1,0 +1,136 @@
+﻿{
+  "Model": "XYZ_999",
+  "TestSteps": [
+    {
+      "Name": "power_on",
+      "Description": "上电",
+      "Device": "power_supply_1",
+      "Command": "set_voltage",
+      "Parameters": { "voltage": 12.0 },
+      "ExpectedResults": {
+        "mode": "equals",
+        "key": "status",
+        "value": "ok"
+      },
+      "TimeoutMs": 2000,
+      "DependsOn": [],
+      "OnSuccess": "test_current",
+      "OnFailure": "power_off"
+    },
+    {
+      "Name": "test_current",
+      "Description": "测试电流",
+      "Device": "current_meter_1",
+      "Command": "measure",
+      "Parameters": { "range": "auto" },
+      "ExpectedResults": {
+        "mode": "range",
+        "key": "current",
+        "min": 1.6,
+        "max": 2.0
+      },
+      "TimeoutMs": 2000,
+      "DependsOn": [ "power_on" ],
+      "OnSuccess": "power_off",
+      "OnFailure": "power_off"
+    },
+    {
+      "Name": "test_resistance",
+      "Description": "测试绝缘电阻",
+      "Device": "resistance_meter_1",
+      "Command": "measure_resistance",
+      "Parameters": { "range": "10k" },
+      "ExpectedResults": {
+        "mode": "range",
+        "key": "resistance",
+        "min": 9000,
+        "max": 11000
+      },
+      "TimeoutMs": 4000,
+      "DependsOn": [ "test_current" ],
+      "OnSuccess": "test_noise",
+      "OnFailure": "power_off"
+    },
+    {
+      "Name": "test_noise",
+      "Description": "测试噪音水平",
+      "Device": "noise_meter_1",
+      "Command": "measure",
+      "Parameters": { "weighting": "A" },
+      "ExpectedResults": {
+        "mode": "range",
+        "key": "noise_level",
+        "min": 63.0,
+        "max": 67.0
+      },
+      "TimeoutMs": 5000,
+      "DependsOn": [ "test_resistance" ],
+      "OnSuccess": "can_test",
+      "OnFailure": "power_off"
+    },
+    {
+      "Name": "can_test",
+      "Description": "测试CAN总线通信",
+      "Device": "can_adapter_1",
+      "Command": "send_and_receive",
+      "Parameters": {
+        "id": "0x123",
+        "data": [ 1, 2, 3, 4 ]
+      },
+      "ExpectedResults": {
+        "mode": "contains",
+        "key": "response",
+        "value": "ACK"
+      },
+      "TimeoutMs": 6000,
+      "DependsOn": [ "test_noise" ],
+      "OnSuccess": "power_off",
+      "OnFailure": "power_off"
+    },
+    {
+      "Name": "power_off",
+      "Description": "关闭产品电源",
+      "Device": "power_supply_1",
+      "Command": "set_voltage",
+      "Parameters": { "voltage": 0.0 },
+      "ExpectedResults": {
+        "mode": "equals",
+        "key": "status",
+        "value": "ok"
+      },
+      "TimeoutMs": 2000,
+      "DependsOn": [
+        "test_current",
+        "test_resistance",
+        "test_noise",
+        "can_test"
+      ],
+      "OnSuccess": "generate_report",
+      "OnFailure": "generate_report"
+    },
+    {
+      "Name": "generate_report",
+      "Description": "生成测试报告",
+      "Device": "report_generator",
+      "Command": "generate",
+      "Parameters": { "format": "html" },
+      "ExpectedResults": {},
+      "TimeoutMs": 3000,
+      "DependsOn": [ "power_off" ],
+      "OnSuccess": "end_test",
+      "OnFailure": "end_test"
+    },
+    {
+      "Name": "end_test",
+      "Description": "测试结束",
+      "Device": "system",
+      "Command": "shutdown",
+      "Parameters": {},
+      "ExpectedResults": {},
+      "TimeoutMs": 1000,
+      "DependsOn": [ "generate_report" ],
+      "OnSuccess": "",
+      "OnFailure": ""
+    }
+  ]
+}

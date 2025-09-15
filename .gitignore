@@ -1,0 +1,77 @@
+# .NET Core
+**/bin/
+**/obj/
+*.dll
+*.exe
+*.pdb
+*.log
+*.user
+*.suo
+*.cache
+*.docstates
+
+# Visual Studio
+.vs/
+.vscode/
+*.csproj.user
+*.sln.dotsettings.user
+
+# Rider
+.idea/
+
+# NuGet
+**/packages/
+*.nupkg
+**/*.snupkg
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+
+# Testing
+**/TestResults/
+**/Coverage/
+**/.coverage
+**/TestResult.xml
+
+# ASP.NET Core
+**/node_modules/
+**/wwwroot/dist/
+**/wwwroot/lib/
+
+# Configuration files
+appsettings.Development.json
+appsettings.Staging.json
+appsettings.Production.json
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk

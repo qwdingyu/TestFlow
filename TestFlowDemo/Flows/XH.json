@@ -1,0 +1,119 @@
+{
+	"Model": "XHJC",
+	"TestSteps": [
+		{
+			"Name": "power_on",
+			"Description": "上电",
+			"Device": "power_supply_1",
+			"Command": "set_voltage",
+			"Parameters": { "voltage": 12.0 },
+			"ExpectedResults": {
+				"mode": "equals",
+				"key": "status",
+				"value": "ok"
+			},
+			"TimeoutMs": 2000,
+			"DependsOn": [],
+			"OnSuccess": "start_env",
+			"OnFailure": "power_off"
+		},
+		{
+			"Name": "start_env",
+			"Description": "启动座椅 ECU 运行环境报文 (#1~#4)",
+			"Device": "can_adapter_1",
+			"Command": "start_seat_env",
+			"Parameters": {},
+			"ExpectedResults": {},
+			"DependsOn": [ "power_on" ],
+			"OnSuccess": "heater_low",
+			"OnFailure": "power_off"
+		},
+		{
+			"Name": "heater_low",
+			"Description": "全座椅加热低档",
+			"Device": "can_adapter_1",
+			"Command": "seat_heater_control",
+			"Parameters": { "level": "low" },
+			"ExpectedResults": {},
+			"TimeoutMs": 2000,
+			"DependsOn": [ "start_env" ],
+			"OnSuccess": "heater_mid",
+			"OnFailure": "stop_env"
+		},
+		{
+			"Name": "heater_mid",
+			"Description": "全座椅加热中档",
+			"Device": "can_adapter_1",
+			"Command": "seat_heater_control",
+			"Parameters": { "level": "mid" },
+			"ExpectedResults": {},
+			"TimeoutMs": 2000,
+			"DependsOn": [ "heater_low" ],
+			"OnSuccess": "heater_high",
+			"OnFailure": "stop_env"
+		},
+		{
+			"Name": "heater_high",
+			"Description": "全座椅加热高档",
+			"Device": "can_adapter_1",
+			"Command": "seat_heater_control",
+			"Parameters": { "level": "high" },
+			"ExpectedResults": {},
+			"TimeoutMs": 2000,
+			"DependsOn": [ "heater_mid" ],
+			"OnSuccess": "heater_off",
+			"OnFailure": "stop_env"
+		},
+		{
+			"Name": "heater_off",
+			"Description": "全座椅加热关闭",
+			"Device": "can_adapter_1",
+			"Command": "seat_heater_control",
+			"Parameters": { "level": "off" },
+			"ExpectedResults": {},
+			"TimeoutMs": 2000,
+			"DependsOn": [ "heater_high" ],
+			"OnSuccess": "stop_env",
+			"OnFailure": "stop_env"
+		},
+		{
+			"Name": "stop_env",
+			"Description": "停止座椅 ECU 运行环境报文",
+			"Device": "can_adapter_1",
+			"Command": "stop_seat_env",
+			"Parameters": {},
+			"ExpectedResults": {},
+			"DependsOn": [ "heater_off" ],
+			"OnSuccess": "power_off",
+			"OnFailure": "power_off"
+		},
+		{
+			"Name": "power_off",
+			"Description": "下电",
+			"Device": "power_supply_1",
+			"Command": "set_voltage",
+			"Parameters": { "voltage": 0.0 },
+			"ExpectedResults": {
+				"mode": "equals",
+				"key": "status",
+				"value": "ok"
+			},
+			"TimeoutMs": 2000,
+			"DependsOn": [ "stop_env" ],
+			"OnSuccess": "end_test",
+			"OnFailure": "end_test"
+		},
+		{
+			"Name": "end_test",
+			"Description": "测试结束",
+			"Device": "system",
+			"Command": "shutdown",
+			"Parameters": {},
+			"ExpectedResults": {},
+			"TimeoutMs": 1000,
+			"DependsOn": [ "power_off" ],
+			"OnSuccess": "",
+			"OnFailure": ""
+		}
+	]
+}

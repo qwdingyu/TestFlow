@@ -1,0 +1,74 @@
+{
+	"Model": "E541",
+	"TestSteps": [
+		{
+			"Name": "power_on",
+			"Description": "上电",
+			"Device": "power_supply_1",
+			"Command": "set_voltage",
+			"Parameters": { "voltage": 12.0 },
+			"ExpectedResults": { "mode": "equals", "key": "status", "value": "ok" },
+			"TimeoutMs": 2000,
+			"DependsOn": [],
+			"OnSuccess": "ecu_can_check_ref",
+			"OnFailure": "power_off"
+		},
+		{
+			"Name": "ecu_can_check_ref",
+			"Type": "SubFlowRef",
+			"Ref": "ecu_can_check",
+			"Description": "执行 CAN 子流程",
+			"DependsOn": [ "power_on" ],
+			"OnSuccess": "test_current",
+			"OnFailure": "power_off"
+		},
+		{
+			"Name": "test_current",
+			"Description": "测试电流",
+			"Device": "current_meter_1",
+			"Command": "measure",
+			"Parameters": { "range": "auto" },
+			"ExpectedResults": { "mode": "equals", "key": "current", "value": 1.8 },
+			"TimeoutMs": 2000,
+			"DependsOn": [ "ecu_can_check_ref" ],
+			"OnSuccess": "power_off",
+			"OnFailure": "power_off"
+		},
+		{
+			"Name": "power_off",
+			"Description": "下电",
+			"Device": "power_supply_1",
+			"Command": "set_voltage",
+			"Parameters": { "voltage": 0.0 },
+			"ExpectedResults": { "mode": "equals", "key": "status", "value": "ok" },
+			"TimeoutMs": 2000,
+			"DependsOn": [ "test_current" ],
+			"OnSuccess": "generate_report",
+			"OnFailure": "generate_report"
+		},
+		{
+			"Name": "generate_report",
+			"Description": "生成报告",
+			"Device": "report_generator",
+			"Command": "generate",
+			"Parameters": { "format": "html" },
+			"ExpectedResults": {},
+			"TimeoutMs": 2000,
+			"DependsOn": [ "power_off" ],
+			"OnSuccess": "end_test",
+			"OnFailure": "end_test"
+		},
+		{
+			"Name": "end_test",
+			"Description": "测试结束",
+			"Device": "system",
+			"Command": "shutdown",
+			"Parameters": {},
+			"ExpectedResults": {},
+			"TimeoutMs": 1000,
+			"DependsOn": [ "generate_report" ],
+			"OnSuccess": "",
+			"OnFailure": ""
+		}
+	]
+}

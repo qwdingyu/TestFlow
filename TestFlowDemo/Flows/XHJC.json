@@ -1,0 +1,91 @@
+{
+	"Model": "XH",
+	"TestSteps": [
+		{
+			"Name": "power_on",
+			"Description": "上电",
+			"Device": "power_supply_1",
+			"Command": "set_voltage",
+			"Parameters": { "voltage": 12.0 },
+			"ExpectedResults": {
+				"mode": "equals",
+				"key": "status",
+				"value": "ok"
+			},
+			"TimeoutMs": 2000,
+			"DependsOn": [],
+			"OnSuccess": "start_env",
+			"OnFailure": "power_off"
+		},
+		{
+			"Name": "start_env",
+			"Description": "启动座椅 ECU 运行环境报文 (#1~#4)",
+			"Device": "can_adapter_1",
+			"Command": "start_seat_env",
+			"Parameters": {},
+			"ExpectedResults": {},
+			"DependsOn": [ "power_on" ],
+			"OnSuccess": "heater_low",
+			"OnFailure": "power_off"
+		},
+		{
+			"Name": "heater_high_with_measure",
+			"Description": "全座椅加热高档 + 电流噪音采集",
+			"Device": "can_adapter_1",
+			"Command": "seat_heater_with_measure",
+			"Parameters": {
+				"level": "high",
+				"measure_ms": 5000
+			},
+			"ExpectedResults": {
+				"mode": "range",
+				"key": "power_meter.avg_current",
+				"min": 2.0,
+				"max": 8.0
+			},
+			"TimeoutMs": 8000,
+			"DependsOn": [ "start_env" ],
+			"OnSuccess": "stop_env",
+			"OnFailure": "stop_env"
+		},
+		{
+			"Name": "stop_env",
+			"Description": "停止座椅 ECU 运行环境报文",
+			"Device": "can_adapter_1",
+			"Command": "stop_seat_env",
+			"Parameters": {},
+			"ExpectedResults": {},
+			"DependsOn": [ "heater_off" ],
+			"OnSuccess": "power_off",
+			"OnFailure": "power_off"
+		},
+		{
+			"Name": "power_off",
+			"Description": "下电",
+			"Device": "power_supply_1",
+			"Command": "set_voltage",
+			"Parameters": { "voltage": 0.0 },
+			"ExpectedResults": {
+				"mode": "equals",
+				"key": "status",
+				"value": "ok"
+			},
+			"TimeoutMs": 2000,
+			"DependsOn": [ "stop_env" ],
+			"OnSuccess": "end_test",
+			"OnFailure": "end_test"
+		},
+		{
+			"Name": "end_test",
+			"Description": "测试结束",
+			"Device": "system",
+			"Command": "shutdown",
+			"Parameters": {},
+			"ExpectedResults": {},
+			"TimeoutMs": 1000,
+			"DependsOn": [ "power_off" ],
+			"OnSuccess": "",
+			"OnFailure": ""
+		}
+	]
+}

@@ -1,0 +1,58 @@
+{
+  "Model": "GENERIC_DEMO",
+  "TestSteps": [
+    {
+      "Name": "echo_start",
+      "Description": "Shell 启动标记",
+      "Target": "shell_1",
+      "Command": "run",
+      "Parameters": { "cmd": "echo", "args": "GENERIC_DEMO_START" },
+      "ExpectedResults": { "mode": "equals", "key": "exit_code", "value": 0 },
+      "TimeoutMs": 3000,
+      "DependsOn": [],
+      "OnSuccess": "http_call",
+      "OnFailure": "end"
+    },
+    {
+      "Name": "http_call",
+      "Description": "HTTP 调用测试",
+      "Target": "http_1",
+      "Command": "invoke",
+      "Parameters": {
+        "method": "GET",
+        "url": "https://postman-echo.com/get",
+        "query": { "ping": "pong" }
+      },
+      "ExpectedResults": { "mode": "equals", "key": "status", "value": 200 },
+      "TimeoutMs": 5000,
+      "DependsOn": [ "echo_start" ],
+      "OnSuccess": "report",
+      "OnFailure": "end"
+    },
+    {
+      "Name": "report",
+      "Description": "生成报告",
+      "Device": "report_generator",
+      "Command": "generate",
+      "Parameters": { "format": "html" },
+      "ExpectedResults": {},
+      "TimeoutMs": 2000,
+      "DependsOn": [ "http_call" ],
+      "OnSuccess": "end",
+      "OnFailure": "end"
+    },
+    {
+      "Name": "end",
+      "Description": "结束",
+      "Device": "system",
+      "Command": "shutdown",
+      "Parameters": {},
+      "ExpectedResults": {},
+      "TimeoutMs": 1000,
+      "DependsOn": [ "report" ],
+      "OnSuccess": "",
+      "OnFailure": ""
+    }
+  ]
+}
+

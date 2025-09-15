@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/infrastructure.schema.json",
+  "title": "Infrastructure",
+  "type": "object",
+  "properties": {
+    "Infrastructure": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "Type": { "type": "string", "minLength": 1 },
+          "ConnectionString": { "type": "string" },
+          "Settings": { "type": "object" }
+        },
+        "required": ["Type"],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": ["Infrastructure"],
+  "additionalProperties": false
+}
+

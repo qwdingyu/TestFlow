@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/devices.schema.json",
+  "title": "Devices",
+  "type": "object",
+  "properties": {
+    "Devices": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "Type": { "type": "string", "minLength": 1 },
+          "ConnectionString": { "type": "string" },
+          "Settings": { "type": "object" }
+        },
+        "required": ["Type"],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": ["Devices"],
+  "additionalProperties": false
+}
+

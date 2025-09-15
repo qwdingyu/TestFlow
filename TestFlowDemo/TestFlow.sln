@@ -1,0 +1,60 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestFlowDemo", "TestFlowDemo.csproj", "{A1A2A3A4-B5B6-47C8-9D1E-000000000001}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libraries", "Libraries", "{D2060278-21A8-40C0-B9C3-482C16ECC84E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZL.DeviceLib", "..\Libraries\ZL.DeviceLib\ZL.DeviceLib.csproj", "{3EF362FC-57A7-4D41-BEFA-649021F318E6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZL.WorkflowLib", "..\Libraries\ZL.WorkflowLib\ZL.WorkflowLib.csproj", "{98F90897-685A-4CFB-A8DF-BDA209B37981}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PluginsSrc", "PluginsSrc", "{774F1FD7-24FE-449C-B614-9F34F859CC7B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MyDriver", "..\PluginsSrc\MyDriver\MyDriver.csproj", "{3DC3B733-88C9-4AB0-A14F-AAE36012D08D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{F4570127-5488-49D6-AD1E-78E8FBD5D854}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlowCli", "..\Tools\FlowCli\FlowCli.csproj", "{EF5C99DD-987F-43AE-A199-F41B1B07AB86}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A1A2A3A4-B5B6-47C8-9D1E-000000000001}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1A2A3A4-B5B6-47C8-9D1E-000000000001}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1A2A3A4-B5B6-47C8-9D1E-000000000001}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1A2A3A4-B5B6-47C8-9D1E-000000000001}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3EF362FC-57A7-4D41-BEFA-649021F318E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3EF362FC-57A7-4D41-BEFA-649021F318E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3EF362FC-57A7-4D41-BEFA-649021F318E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3EF362FC-57A7-4D41-BEFA-649021F318E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{98F90897-685A-4CFB-A8DF-BDA209B37981}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98F90897-685A-4CFB-A8DF-BDA209B37981}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98F90897-685A-4CFB-A8DF-BDA209B37981}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98F90897-685A-4CFB-A8DF-BDA209B37981}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3DC3B733-88C9-4AB0-A14F-AAE36012D08D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3DC3B733-88C9-4AB0-A14F-AAE36012D08D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3DC3B733-88C9-4AB0-A14F-AAE36012D08D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3DC3B733-88C9-4AB0-A14F-AAE36012D08D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EF5C99DD-987F-43AE-A199-F41B1B07AB86}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF5C99DD-987F-43AE-A199-F41B1B07AB86}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF5C99DD-987F-43AE-A199-F41B1B07AB86}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF5C99DD-987F-43AE-A199-F41B1B07AB86}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3EF362FC-57A7-4D41-BEFA-649021F318E6} = {D2060278-21A8-40C0-B9C3-482C16ECC84E}
+		{98F90897-685A-4CFB-A8DF-BDA209B37981} = {D2060278-21A8-40C0-B9C3-482C16ECC84E}
+		{3DC3B733-88C9-4AB0-A14F-AAE36012D08D} = {774F1FD7-24FE-449C-B614-9F34F859CC7B}
+		{EF5C99DD-987F-43AE-A199-F41B1B07AB86} = {F4570127-5488-49D6-AD1E-78E8FBD5D854}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {93FA230C-3F7B-447D-9DC8-C57F4C4DD96F}
+	EndGlobalSection
+EndGlobal

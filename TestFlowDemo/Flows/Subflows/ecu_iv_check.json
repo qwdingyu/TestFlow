@@ -1,0 +1,45 @@
+{
+  "Name": "ecu_iv_check",
+  "Type": "SubFlow",
+  "Description": "电流电阻联动检查",
+  "Steps": [
+    {
+      "Name": "apply_resistance",
+      "Description": "设定电阻",
+      "Device": "resistor_box",
+      "Command": "set_resistance",
+      "Parameters": { "value": 100 },
+      "ExpectedResults": {
+        "mode": "equals",
+        "key": "status",
+        "value": "ok"
+      }
+    },
+    {
+      "Name": "measure_current",
+      "Description": "测量电流",
+      "Device": "current_meter_1",
+      "Command": "measure",
+      "Parameters": { "range": "auto" },
+      "ExpectedResults": {
+        "mode": "range",
+        "key": "current",
+        "min": 1.0,
+        "max": 2.0
+      }
+    },
+    {
+      "Name": "measure_voltage",
+      "Description": "测量电压",
+      "Device": "voltmeter_1",
+      "Command": "measure",
+      "Parameters": { "range": "auto" },
+      "ExpectedResults": {
+        "mode": "range",
+        "key": "current",
+        "min": 11.5,
+        "max": 12.5
+      }
+    }
+  ]
+}

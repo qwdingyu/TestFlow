@@ -1,0 +1,32 @@
+{
+  "Name": "ecu_power_on_check",
+  "Type": "SubFlow",
+  "Description": "ECU 上电检测",
+  "Steps": [
+    {
+      "Name": "set_voltage",
+      "Description": "设置电流",
+      "Device": "power_supply_1",
+      "Command": "set_voltage",
+      "Parameters": {},
+      "ExpectedResults": {
+        "mode": "tolerance",
+        "key": "voltage",
+        "target": 12,
+        "tolerance": 0.5
+      }
+    },
+    {
+      "Name": "measure_current",
+      "Description": "设置电阻",
+      "Device": "current_meter_1",
+      "Command": "measure",
+      "ExpectedResults": {
+        "mode": "range",
+        "key": "current",
+        "min": 0.5,
+        "max": 2.0
+      }
+    }
+  ]
+}

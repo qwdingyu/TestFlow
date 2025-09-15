@@ -1,0 +1,23 @@
+{
+  "Name": "ecu_can_check",
+  "Type": "SubFlow",
+  "Description": "CAN 报文测试（从 DB 注入）",
+  "Steps": [
+    {
+      "Name": "唤醒报文",
+      "Description": "唤醒报文",
+      "Device": "can_adapter_1",
+      "Command": "send_and_receive",
+      "Parameters": { "@from_db": true },
+      "ExpectedResults": {}
+      },
+    {
+      "Name": "主驾按摩",
+      "Description": "主驾按摩",
+      "Device": "can_adapter_1",
+      "Command": "send_and_receive",
+      "Parameters": { "@from_db": true },
+      "ExpectedResults": {}
+    }
+  ]
+}
