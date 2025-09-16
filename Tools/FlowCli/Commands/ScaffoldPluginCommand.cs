@@ -42,56 +42,56 @@ namespace Cli.Commands
                 string devPath = Path.Combine(srcDir, pluginName + "Device.cs");
                 string regPath = Path.Combine(srcDir, pluginName + "Registrar.cs");
                 string typeName = pluginName;
-                string devSrc = "" +
-@"using System;
+                // 使用插值字符串生成设备示例源码，确保模板结构清晰易读。
+                string devSrc = @$"using System;
 using System.Collections.Generic;
 using ZL.DeviceLib.Devices;
 using ZL.DeviceLib.Devices.Plugin;
 using ZL.DeviceLib.Engine;
 using ZL.DeviceLib.Models;
 
-namespace " + ns + @"
-{
-    [DeviceType(""" + typeName + """)]
-    public class " + typeName + @"Device : IDevice
-    {
-        public " + typeName + @"Device(DeviceConfig cfg) { /* TODO 读取 cfg.Settings */ }
+namespace {ns}
+{{
+    [DeviceType(""{typeName}"")]
+    public class {typeName}Device : IDevice
+    {{
+        public {typeName}Device(DeviceConfig cfg) {{ /* TODO 读取 cfg.Settings */ }}
         public DeviceExecResult Execute(StepConfig step, StepContext ctx)
-        {
+        {{
             var outputs = new Dictionary<string, object>();
             try
-            {
+            {{
                 outputs[""status""] = ""ok"";
-                return new DeviceExecResult { Success = true, Message = """ + typeName + " ok"", Outputs = outputs };
-            }
+                return new DeviceExecResult {{ Success = true, Message = ""{typeName} ok"", Outputs = outputs }};
+            }}
             catch (OperationCanceledException)
-            {
-                return new DeviceExecResult { Success = false, Message = ""cancelled"", Outputs = outputs };
-            }
+            {{
+                return new DeviceExecResult {{ Success = false, Message = ""cancelled"", Outputs = outputs }};
+            }}
             catch (Exception ex)
-            {
-                return new DeviceExecResult { Success = false, Message = ex.Message, Outputs = outputs };
-            }
-        }
-    }
-}
+            {{
+                return new DeviceExecResult {{ Success = false, Message = ex.Message, Outputs = outputs }};
+            }}
+        }}
+    }}
+}}
 ";
                 File.WriteAllText(devPath, devSrc);
 
-                string regSrc = "" +
-@"using ZL.DeviceLib.Devices;
+                // 同样使用插值字符串生成注册器模板代码，避免后续维护风险。
+                string regSrc = @$"using ZL.DeviceLib.Devices;
 using ZL.DeviceLib.Devices.Plugin;
 
-namespace " + ns + @"
-{
-    public class " + typeName + @"Registrar : IDeviceRegistrar
-    {
+namespace {ns}
+{{
+    public class {typeName}Registrar : IDeviceRegistrar
+    {{
         public void Register(DeviceFactory factory)
-        {
-            factory.Register(""" + typeName + """, (_, cfg) => new " + typeName + @"Device(cfg));
-        }
-    }
-}
+        {{
+            factory.Register(""{typeName}"", (_, cfg) => new {typeName}Device(cfg));
+        }}
+    }}
+}}
 ";
                 File.WriteAllText(regPath, regSrc);
 
