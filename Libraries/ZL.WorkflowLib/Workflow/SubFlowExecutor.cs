@@ -169,83 +169,45 @@ namespace ZL.WorkflowLib.Workflow
         /// </summary>
         private static OrchTaskResult ExecuteTask(OrchTask task, StepContext sharedCtx)
         {
-            var taskResult = new OrchTaskResult
+            if (task == null || task.Step == null)
             {
-                StartedAt = DateTime.Now
-            };
-
-            var pooledResult = StepResultPool.Instance.Get();
-
-            try
-            {
-                if (task?.Step == null)
+                var now = DateTime.Now;
+                return new OrchTaskResult
                 {
-                    taskResult.Success = false;
-                    taskResult.Message = "任务缺少 Step 配置";
-                    return taskResult;
-                }
-
-                var step = task.Step;
-                UiEventBus.PublishLog($"---[SubFlow] 开始 {step.Name}, 设备【{step.Device}】, 描述【{step.Description}】");
-
-                var resourceKey = !string.IsNullOrWhiteSpace(task.ResourceId)
-                    ? task.ResourceId
-                    : (!string.IsNullOrWhiteSpace(step.Device) ? step.Device : step.Target);
-
-                if (string.IsNullOrWhiteSpace(resourceKey))
-                    resourceKey = step.Name ?? task.Id;
-
-                var execResult = DeviceLockRegistry.WithLock(resourceKey, () =>
-                {
-                    var baseToken = sharedCtx != null ? sharedCtx.Cancellation : CancellationToken.None;
-                    using (var linked = CancellationTokenSource.CreateLinkedTokenSource(baseToken))
-                    {
-                        if (step.TimeoutMs > 0)
-                            linked.CancelAfter(step.TimeoutMs);
-
-                        var stepCtx = sharedCtx != null
-                            ? sharedCtx.CloneWithCancellation(linked.Token)
-                            : new StepContext(DeviceServices.Config?.Model ?? string.Empty, linked.Token);
-
-                        DeviceConfig devConf;
-                        if (!DeviceServices.Config.Devices.TryGetValue(step.Device, out devConf))
-                            throw new Exception("Device not found: " + step.Device);
-
-                        return DeviceServices.Factory.UseDevice(step.Device, devConf, dev => dev.Execute(step, stepCtx));
-                    }
-                });
-
-                pooledResult.Success = execResult.Success;
-                pooledResult.Message = execResult.Message;
-                pooledResult.Outputs = execResult.Outputs ?? new Dictionary<string, object>();
-
-                string reason;
-                bool passExpected = ResultEvaluator.Evaluate(step.ExpectedResults, pooledResult.Outputs, step.Parameters, out reason);
-                if (!passExpected)
-                {
-                    pooledResult.Success = false;
-                    pooledResult.Message = (pooledResult.Message ?? string.Empty) + " | expected mismatch: " + reason;
-                }
-
-                taskResult.Success = pooledResult.Success;
-                taskResult.Message = pooledResult.Message;
-                taskResult.Outputs = new Dictionary<string, object>(pooledResult.Outputs ?? new Dictionary<string, object>());
-
-                UiEventBus.PublishLog($"[SubStep] {step.Name} | Success={taskResult.Success} | Msg={taskResult.Message}");
-            }
-            catch (Exception ex)
-            {
-                taskResult.Success = false;
-                taskResult.Message = ex.Message;
-                taskResult.Outputs = new Dictionary<string, object>();
-                UiEventBus.PublishLog($"[SubStep-Exception] {task?.Step?.Name ?? task?.Id} | 错误={ex.Message}");
-            }
-            finally
-            {
-                taskResult.FinishedAt = DateTime.Now;
-                StepResultPool.Instance.Return(pooledResult);
+                    Success = false,
+                    Message = "任务缺少 Step 配置",
+                    Outputs = new Dictionary<string, object>(),
+                    StartedAt = now,
+                    FinishedAt = now
+                };
             }
 
+            var step = task.Step;
+            UiEventBus.PublishLog($"---[SubFlow] 开始 {step.Name}, 设备【{step.Device}】, 描述【{step.Description}】");
+
+            var resourceKey = !string.IsNullOrWhiteSpace(task.ResourceId)
+                ? task.ResourceId
+                : (!string.IsNullOrWhiteSpace(step.Device) ? step.Device : step.Target);
+
+            if (string.IsNullOrWhiteSpace(resourceKey))
+                resourceKey = step.Name ?? task.Id;
+
+            var taskResult = DeviceLockRegistry.WithLock(resourceKey, () => DeviceExecStep.ExecuteSingleStep(step, sharedCtx));
+
+            if (taskResult == null)
+            {
+                var now = DateTime.Now;
+                taskResult = new OrchTaskResult
+                {
+                    Success = false,
+                    Message = "执行返回空结果",
+                    Outputs = new Dictionary<string, object>(),
+                    StartedAt = now,
+                    FinishedAt = now
+                };
+            }
+
+            UiEventBus.PublishLog($"[SubStep] {step.Name} | Success={taskResult.Success} | Msg={taskResult.Message}");
             return taskResult;
         }
 
@@ -351,6 +313,8 @@ namespace ZL.WorkflowLib.Workflow
         /// <summary>
         /// 将子流程配置展开为编排计划，支持嵌套子流程和子流程引用。
         /// </summary>
+        /// <param name="stepCfg">原始的子流程定义（包含 Steps）。</param>
+        /// <param name="data">流程运行时数据，用于参数解析与模型上下文。</param>
         private static OrchestrationPlan BuildPlan(StepConfig stepCfg, FlowData data)
         {
             var plan = new OrchestrationPlan { Name = stepCfg.Name };
@@ -365,6 +329,12 @@ namespace ZL.WorkflowLib.Workflow
         /// <summary>
         /// 递归展开子步骤，遇到嵌套子流程时继续下钻。
         /// </summary>
+        /// <param name="container">当前需要展开的步骤容器（可能是子流程本身或引用）。</param>
+        /// <param name="data">流程数据，用于参数注入与模型信息。</param>
+        /// <param name="plan">正在构建的编排计划。</param>
+        /// <param name="prefix">层级前缀，形如 parent.child。</param>
+        /// <param name="nameMap">名称映射表，用于后续依赖解析。</param>
+        /// <param name="usedIds">已使用的任务 Id 集，避免冲突。</param>
         private static void AppendSubSteps(StepConfig container, FlowData data, OrchestrationPlan plan, string prefix, Dictionary<string, string> nameMap, HashSet<string> usedIds)
         {
             if (container?.Steps == null)
@@ -410,8 +380,8 @@ namespace ZL.WorkflowLib.Workflow
                 {
                     Id = uniqueId,
                     Step = execSub,
-                    ResourceId = ResolveResourceId(execSub),
-                    RawDependsOn = NormalizeDepends(sub.DependsOn, prefix)
+                    ResourceId = ResolveResourceId(execSub), // 资源互斥标识：避免多个任务争用同一物理设备
+                    RawDependsOn = NormalizeDepends(sub.DependsOn, prefix) // 暂存原始依赖名，待 ResolveDependencies 转换
                 });
             }
         }
@@ -419,6 +389,8 @@ namespace ZL.WorkflowLib.Workflow
         /// <summary>
         /// 将 RawDependsOn（原始名）映射为实际任务 Id。
         /// </summary>
+        /// <param name="plan">完整的编排计划，包含所有节点。</param>
+        /// <param name="nameMap">名称到唯一 Id 的映射表。</param>
         private static void ResolveDependencies(OrchestrationPlan plan, Dictionary<string, string> nameMap)
         {
             if (plan?.Tasks == null)
@@ -440,7 +412,7 @@ namespace ZL.WorkflowLib.Workflow
                         resolved.Add(actual);
                 }
 
-                task.DependsOn = resolved.Count > 0 ? resolved : null;
+                task.DependsOn = resolved.Count > 0 ? resolved : null; // 依赖列表：为空表示无前驱限制
                 task.RawDependsOn = null; // 释放临时引用
             }
         }
@@ -448,6 +420,8 @@ namespace ZL.WorkflowLib.Workflow
         /// <summary>
         /// 将依赖名称添加层级前缀，保持与任务 Id 生成规则一致。
         /// </summary>
+        /// <param name="dependsOn">原始的依赖列表。</param>
+        /// <param name="prefix">当前层级的前缀。</param>
         private static List<string> NormalizeDepends(IList<string> dependsOn, string prefix)
         {
             if (dependsOn == null || dependsOn.Count == 0)
@@ -468,6 +442,8 @@ namespace ZL.WorkflowLib.Workflow
         /// <summary>
         /// 组合层级前缀，使用 '.' 作为分隔符，并在拼装前对每一段进行清洗。
         /// </summary>
+        /// <param name="prefix">已有的层级前缀。</param>
+        /// <param name="segment">当前步骤的名称片段。</param>
         private static string CombinePrefix(string prefix, string segment)
         {
             var sanitized = SanitizeSegment(segment);
@@ -481,6 +457,7 @@ namespace ZL.WorkflowLib.Workflow
         /// <summary>
         /// 清洗名称片段，避免出现空格等不适合作为 Id 的字符。
         /// </summary>
+        /// <param name="value">原始名称片段。</param>
         private static string SanitizeSegment(string value)
         {
             if (string.IsNullOrWhiteSpace(value))
@@ -503,6 +480,9 @@ namespace ZL.WorkflowLib.Workflow
         /// <summary>
         /// 生成唯一 Id，如果存在同名则自动追加序号后缀。
         /// </summary>
+        /// <param name="candidate">建议的原始名称。</param>
+        /// <param name="usedIds">已占用的 Id 集合。</param>
+        /// <param name="index">当前任务在 Plan 中的序号，用于兜底命名。</param>
         private static string EnsureUniqueId(string candidate, HashSet<string> usedIds, int index)
         {
             var baseId = !string.IsNullOrEmpty(candidate) ? candidate : $"task_{index}";
@@ -522,6 +502,7 @@ namespace ZL.WorkflowLib.Workflow
         /// <summary>
         /// 解析资源锁键，优先使用参数中的 __resourceId / resourceId，其次退化为设备名。
         /// </summary>
+        /// <param name="step">目标步骤配置。</param>
         private static string ResolveResourceId(StepConfig step)
         {
             if (step?.Parameters != null)
@@ -536,6 +517,9 @@ namespace ZL.WorkflowLib.Workflow
         /// <summary>
         /// 将任务执行结果写入数据库（沿用旧逻辑）。
         /// </summary>
+        /// <param name="task">当前编排任务（包含步骤配置）。</param>
+        /// <param name="result">编排执行结果。</param>
+        /// <param name="data">流程上下文，用于读取 Session/Model 等信息。</param>
         private static void PersistTaskResult(OrchTask task, OrchTaskResult result, FlowData data)
         {
             if (task?.Step == null || data == null)
