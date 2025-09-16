@@ -8,6 +8,9 @@ using ZL.DeviceLib.Models;
 
 namespace Cli
 {
+    /// <summary>
+    /// 设备配置的简单模型，供流程校验等命令临时使用。
+    /// </summary>
     internal class DeviceConfig
     {
         public string Type { get; set; } = string.Empty;
@@ -15,6 +18,9 @@ namespace Cli
         public Dictionary<string, object> Settings { get; set; } = new Dictionary<string, object>();
     }
 
+    /// <summary>
+    /// 流程配置的简单模型，包含步骤及设备映射等信息。
+    /// </summary>
     internal class FlowConfig
     {
         public string Model { get; set; } = string.Empty;
@@ -23,14 +29,21 @@ namespace Cli
         public Dictionary<string, DeviceConfig> Devices { get; set; } = new Dictionary<string, DeviceConfig>();
     }
 
+    /// <summary>
+    /// CLI 程序入口，负责解析命令行参数并分发到对应的命令处理器。
+    /// </summary>
     internal static class Program
     {
+        /// <summary>
+        /// 应用程序入口方法。
+        /// </summary>
         private static int Main(string[] args)
         {
             if (args.Length == 0 || args.Contains("-h") || args.Contains("--help"))
             {
                 PrintHelp();
                 LogHelper.Info("  scaffold-device <TypeName> [--ns <Namespace>] [--out <dir>]  生成设备模板与注册器");
+                // 说明 scaffold-plugin 用法，保持字符串在单行以避免语法错误
                 LogHelper.Info("  scaffold-plugin <PluginName> [--ns <Namespace>]  生成独立驱动库模板（放入 Plugins 目录自动加载）");
                 LogHelper.Info("  schema-validate  校验 devices/infrastructure/flows/subflows 的 JSON 结构");
                 return 0;
@@ -151,6 +164,9 @@ namespace Cli
             }
         }
 
+        /// <summary>
+        /// 打印命令帮助信息。
+        /// </summary>
         private static int PrintHelp()
         {
             LogHelper.Info("Flow CLI");
@@ -160,8 +176,10 @@ namespace Cli
             LogHelper.Info("  validate <MODEL>     校验单一型号流程");
             LogHelper.Info("  run <BARCODE>        解析型号并执行完整流程（无 UI）");
             LogHelper.Info("  scaffold-device <TypeName> [--ns <Namespace>] [--out <dir>]  生成设备模板与注册器");
+            // 同样保持字符串为单行，避免编译错误
             LogHelper.Info("  scaffold-plugin <PluginName> [--ns <Namespace>]  生成独立驱动库模板（放入 Plugins 目录自动加载）");
             return 0;
         }
     }
 }
+
