@@ -14,7 +14,11 @@ namespace ZL.WorkflowLib
     {
         private readonly IWorkflowHost _host;
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _timeoutMap = new ConcurrentDictionary<string, CancellationTokenSource>();
-        public TestRunner(IWorkflowHost host) { _host = host; }
+        public TestRunner(IWorkflowHost host)
+        {
+            _host = host;
+            WorkflowServices.WorkflowHost = host;
+        }
         public string RunTest(string model, string barcode, int timeoutSeconds = 60)
         {
             var cts = new CancellationTokenSource();

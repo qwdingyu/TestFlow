@@ -12,6 +12,7 @@ using ZL.DeviceLib.Engine;
 using ZL.DeviceLib.Models;
 using ZL.WorkflowLib.Engine;
 using ZL.WorkflowLib.Workflow;
+using ZL.WorkflowLib.Workflow.Flows;
 
 namespace TestFlowDemo.Tests.Helpers
 {
@@ -35,7 +36,12 @@ namespace TestFlowDemo.Tests.Helpers
 
             _provider = services.BuildServiceProvider();
             _host = _provider.GetRequiredService<IWorkflowHost>();
+            WorkflowServices.Subflows = new SubflowRegistry();
+            SubflowDefinitionCatalog.Initialize(WorkflowServices.Subflows);
+            WorkflowServices.WorkflowHost = _host;
+
             _host.RegisterWorkflow<DynamicLoopWorkflow, FlowData>();
+            SubflowDefinitionCatalog.RegisterWorkflows(_host, WorkflowServices.Subflows);
             _host.Start();
 
             _factory = new DeviceFactory(System.IO.Path.GetTempPath(), System.IO.Path.GetTempPath());

@@ -11,6 +11,7 @@ using ZL.DeviceLib.Storage;
 using ZL.WorkflowLib;
 using ZL.WorkflowLib.Engine;
 using ZL.WorkflowLib.Workflow;
+using ZL.WorkflowLib.Workflow.Flows;
 
 namespace TestFlowDemo
 {
@@ -107,11 +108,9 @@ namespace TestFlowDemo
             WorkflowServices.ParamInjector = new ParamInjector(_db, 300, "L1", "ST01");
             WorkflowServices.ParamInjector.PreloadAll(); // 启动时加载全部 status=1 参数
 
-            // 初始化子流程库
+            // 初始化子流程库（采用代码内置定义，便于随版本管控）
             WorkflowServices.Subflows = new SubflowRegistry();
-            WorkflowServices.Subflows.LoadFromDirectory(
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Flows", "Subflows")
-            );
+            SubflowDefinitionCatalog.Initialize(WorkflowServices.Subflows);
 
             UiEventBus.PublishLog("[Init] 全局服务初始化完成");
         }
@@ -170,7 +169,10 @@ namespace TestFlowDemo
 
             var provider = services.BuildServiceProvider();
             _host = provider.GetService<IWorkflowHost>();
+            WorkflowServices.WorkflowHost = _host; // 记录全局 Host，供子流程调度
+
             _host.RegisterWorkflow<DynamicLoopWorkflow, FlowData>();
+            SubflowDefinitionCatalog.RegisterWorkflows(_host, WorkflowServices.Subflows);
             _host.Start();
 
             _runner = new TestRunner(_host);
