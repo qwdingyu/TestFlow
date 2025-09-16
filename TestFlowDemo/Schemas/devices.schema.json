@@ -11,6 +11,7 @@
         "properties": {
           "Type": { "type": "string", "minLength": 1 },
           "ConnectionString": { "type": "string" },
+          "ResourceId": { "type": "string" },
           "Settings": { "type": "object" }
         },
         "required": ["Type"],

@@ -14,46 +14,48 @@ namespace ZL.DeviceLib.Devices
         private readonly ICanTransport _can;
 
         private readonly CanMessageScheduler _sched;
+        private readonly DeviceConfig _cfg;
 
         public CanAdapterDevice(DeviceConfig cfg)
         {
+            _cfg = cfg; // ä¿å­˜é…ç½®ä»¥ä¾› ResourceId ç­‰ä½¿ç”¨
             _can = new CanTransport(cfg.ConnectionString);
             _sched = new CanMessageScheduler(_can);
-            //// ÉèÖÃ¹ıÂËÆ÷£º½ö±£Áô²âÊÔÏà¹ØµÄ ID
+            //// è®¾ç½®è¿‡æ»¤å™¨ï¼šä»…ä¿ç•™æµ‹è¯•ç›¸å…³çš„ ID
             //_can.SetFilter(msg =>
             //{
-            //    // ¿ÉÀ©Õ¹³ÉÅäÖÃÎÄ¼ş/°×Ãûµ¥
+            //    // å¯æ‰©å±•æˆé…ç½®æ–‡ä»¶/ç™½åå•
             //    return msg.Id == "0x12D" || msg.Id == "0x4C1";
             //}); 
             _can.SetFilter(msg =>
             {
-                // Ö»±£Áô±¾²âÊÔĞèÒªµÄ ID
+                // åªä¿ç•™æœ¬æµ‹è¯•éœ€è¦çš„ ID
                 switch (msg.Id)
                 {
-                    case "0x201": // ¸ßÑ¹×´Ì¬
-                    case "0x1F1": // µã»ğÔ¿³×
-                    case "0x17D": // ³µËÙ
-                    case "0x120": // Àï³ÌÎŞĞ§
-                    case "0x434": // ×ùÒÎ¼ÓÈÈ¿ØÖÆ
-                    case "0x12D": // ÌØ¶¨»ØÏÔ/ACK
-                    case "0x4C1": // Ö÷¼İ°´Ä¦£¨¼æÈİÒÔÇ°µÄ²âÊÔÏî£©
+                    case "0x201": // é«˜å‹çŠ¶æ€
+                    case "0x1F1": // ç‚¹ç«é’¥åŒ™
+                    case "0x17D": // è½¦é€Ÿ
+                    case "0x120": // é‡Œç¨‹æ— æ•ˆ
+                    case "0x434": // åº§æ¤…åŠ çƒ­æ§åˆ¶
+                    case "0x12D": // ç‰¹å®šå›æ˜¾/ACK
+                    case "0x4C1": // ä¸»é©¾æŒ‰æ‘©ï¼ˆå…¼å®¹ä»¥å‰çš„æµ‹è¯•é¡¹ï¼‰
                         return true;
                     default:
-                        return false; // ÆäÓàÒ»ÂÉ¶ªÆú
+                        return false; // å…¶ä½™ä¸€å¾‹ä¸¢å¼ƒ
                 }
             });
             //_can.SetFilter(msg =>
             //{
             //    if (msg.Id == "0x434")
             //    {
-            //        // Ö»±£Áô×ùÒÎ¿ØÖÆ£¨Data[3] ÔÚ 0x12/0x24/0x36/0x7E ·¶Î§£©
+            //        // åªä¿ç•™åº§æ¤…æ§åˆ¶ï¼ˆData[3] åœ¨ 0x12/0x24/0x36/0x7E èŒƒå›´ï¼‰
             //        return msg.Data.Length > 3 &&
             //               (msg.Data[3] == 0x12 || msg.Data[3] == 0x24 ||
             //                msg.Data[3] == 0x36 || msg.Data[3] == 0x7E || msg.Data[3] == 0x00);
             //    }
             //    return allowed.Contains(msg.Id);
             //});
-            // °²È«»ñÈ¡ can_filter_allowed_ids
+            // å®‰å…¨è·å– can_filter_allowed_ids
             if (cfg.Settings != null && cfg.Settings.TryGetValue("can_filter_allowed_ids", out object canFilterObj))
             {
                 string[] can_filter_allowed_ids = Array.Empty<string>();
@@ -61,19 +63,19 @@ namespace ZL.DeviceLib.Devices
                 {
                     if (canFilterObj is IEnumerable<object> objList)
                     {
-                        // Çé¿ö 1: À´×Ô JSON µÄÊı×é£¨JArray ¡ú object[]£©
+                        // æƒ…å†µ 1: æ¥è‡ª JSON çš„æ•°ç»„ï¼ˆJArray â†’ object[]ï¼‰
                         can_filter_allowed_ids = objList.Select(x => x?.ToString()).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
                     }
                     else if (canFilterObj is string str)
                     {
-                        // Çé¿ö 2: ÅäÖÃ³ÉÁË¶ººÅ·Ö¸ôµÄ×Ö·û´®
+                        // æƒ…å†µ 2: é…ç½®æˆäº†é€—å·åˆ†éš”çš„å­—ç¬¦ä¸²
                         can_filter_allowed_ids = str.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
                                                     .Select(s => s.Trim()).ToArray();
                     }
                 }
                 catch (Exception ex)
                 {
-                    LogHelper.Warn($"½âÎö can_filter_allowed_ids Ê§°Ü: {ex.Message}");
+                    LogHelper.Warn($"è§£æ can_filter_allowed_ids å¤±è´¥: {ex.Message}");
                 }
 
                 var allowed = new HashSet<string>(can_filter_allowed_ids, StringComparer.OrdinalIgnoreCase);
@@ -85,11 +87,14 @@ namespace ZL.DeviceLib.Devices
             }
             else
             {
-                // Ã»ÓĞÅäÖÃÊ±Ä¬ÈÏ·ÅĞĞËùÓĞ
+                // æ²¡æœ‰é…ç½®æ—¶é»˜è®¤æ”¾è¡Œæ‰€æœ‰
                 _can.SetFilter(msg => true);
             }
 
         }
+
+        // èµ„æºæ ‡è¯†ï¼Œæè¿°æ‰€å ç”¨çš„ CAN ç‰©ç†é€šé“
+        public string ResourceId => _cfg.ResourceId ?? _cfg.ConnectionString;
 
         //public DeviceExecResult Execute(StepConfig step, StepContext ctx)
         //{
@@ -97,7 +102,7 @@ namespace ZL.DeviceLib.Devices
         //    var outputs = new Dictionary<string, object>();
         //    try
         //    {
-        //        LogHelper.Info($"--µ±Ç°²âÊÔ²½Öè¡¾{step.Name}¡¿Éè±¸¡¾{step.Device}¡¿, ²ÎÊı¡¾{JsonConvert.SerializeObject(step.Parameters)}¡¿");
+        //        LogHelper.Info($"--å½“å‰æµ‹è¯•æ­¥éª¤ã€{step.Name}ã€‘è®¾å¤‡ã€{step.Device}ã€‘, å‚æ•°ã€{JsonConvert.SerializeObject(step.Parameters)}ã€‘");
         //        if (step.Command == "send_and_receive")
         //        {
         //            string id = step.Parameters.ContainsKey("id") ? step.Parameters["id"].ToString() : "0x000";
@@ -128,14 +133,14 @@ namespace ZL.DeviceLib.Devices
             var outputs = new Dictionary<string, object>();
             try
             {
-                LogHelper.Info($"--µ±Ç°²âÊÔ²½Öè¡¾{step.Name}¡¿Éè±¸¡¾{step.Device}¡¿, ²ÎÊı¡¾{JsonConvert.SerializeObject(step.Parameters)}¡¿");
+                LogHelper.Info($"--å½“å‰æµ‹è¯•æ­¥éª¤ã€{step.Name}ã€‘è®¾å¤‡ã€{step.Device}ã€‘, å‚æ•°ã€{JsonConvert.SerializeObject(step.Parameters)}ã€‘");
 
                 string id = step.Parameters.ContainsKey("id") ? step.Parameters["id"].ToString() : "0x000";
                 byte[] data = step.Parameters.ContainsKey("data")
                     ? ((IEnumerable<object>)step.Parameters["data"]).Select(x => ParseHex(x.ToString())).ToArray()
                     : new byte[0];
 
-                // 1) ÖÜÆÚ»·¾³±¨ÎÄ
+                // 1) å‘¨æœŸç¯å¢ƒæŠ¥æ–‡
                 if (step.Command == "start_seat_env")
                 {
                     int period = 100;
@@ -155,7 +160,7 @@ namespace ZL.DeviceLib.Devices
                     return Ok("Seat ENV stopped");
                 }
 
-                // 2) ÊÂ¼şĞÍ±¨ÎÄ
+                // 2) äº‹ä»¶å‹æŠ¥æ–‡
                 if (step.Command == "seat_heater_control")
                 {
                     string level = step.Parameters.ContainsKey("level") ? step.Parameters["level"].ToString() : "low";
@@ -172,7 +177,7 @@ namespace ZL.DeviceLib.Devices
                     return Ok($"Heater {level} burst done");
                 }
 
-                // 3) Ä¬ÈÏ send_and_receive
+                // 3) é»˜è®¤ send_and_receive
                 if (step.Command == "send_and_receive")
                 {
                     var msg = new CanMessage { Id = id, Data = data, Timestamp = DateTime.Now };
@@ -189,13 +194,13 @@ namespace ZL.DeviceLib.Devices
                         Outputs = outputs
                     };
                 }
-                // XHJC.json Ñ­»·½»²æ²É¼¯
+                // XHJC.json å¾ªç¯äº¤å‰é‡‡é›†
                 if (step.Command == "seat_heater_with_measure")
                 {
                     string level = step.Parameters["level"].ToString();
                     int measureMs = step.Parameters.ContainsKey("measure_ms") ? Convert.ToInt32(step.Parameters["measure_ms"]) : 5000;
 
-                    // 1) Æô¶¯ CAN ÊÂ¼şÈÎÎñ
+                    // 1) å¯åŠ¨ CAN äº‹ä»¶ä»»åŠ¡
                     var ctrlTask = Task.Run(async () =>
                     {
                         string ctrlHex = level == "low" ? "00-00-00-12-00-00-00-00"
@@ -206,11 +211,12 @@ namespace ZL.DeviceLib.Devices
                         await _sched.EnqueueEventBurstAsync("0x434", Hex(ctrlHex), Hex("00-00-00-00-00-00-00-00"), 100, 3, 3);
                     }, ctx.Cancellation);
 
-                    // 2) ²¢·¢ÈÎÎñ£ºµçÁ÷²ÉÑù
+                    // 2) å¹¶å‘ä»»åŠ¡ï¼šç”µæµé‡‡æ ·
                     var pmTask = Task.Run(() =>
                     {
                         var devConf = DeviceServices.Config.Devices["power_meter_1"];
-                        return DeviceServices.Factory.UseDevice("power_meter_1", devConf, dev =>
+                        var key = devConf.ResourceId ?? "power_meter_1";
+                        return DeviceServices.Factory.UseDevice(key, devConf, dev =>
                         {
                             var sc = new StepConfig
                             {
@@ -222,11 +228,12 @@ namespace ZL.DeviceLib.Devices
                         });
                     }, ctx.Cancellation);
 
-                    // 3) ²¢·¢ÈÎÎñ£ºÔëÒô²ÉÑù
+                    // 3) å¹¶å‘ä»»åŠ¡ï¼šå™ªéŸ³é‡‡æ ·
                     var micTask = Task.Run(() =>
                     {
                         var devConf = DeviceServices.Config.Devices["mic_1"];
-                        return DeviceServices.Factory.UseDevice("mic_1", devConf, dev =>
+                        var key = devConf.ResourceId ?? "mic_1";
+                        return DeviceServices.Factory.UseDevice(key, devConf, dev =>
                         {
                             var sc = new StepConfig
                             {

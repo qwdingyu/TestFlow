@@ -24,6 +24,9 @@ namespace ZL.DeviceLib.Devices
     {
         private readonly DeviceConfig _cfg;
         public MockScanner(DeviceConfig cfg) { _cfg = cfg; }
+
+        // 资源标识：若未配置则使用连接字符串
+        public string ResourceId => _cfg.ResourceId ?? _cfg.ConnectionString;
         public DeviceExecResult Execute(StepConfig step, StepContext context)
         {
             var token = context.Cancellation;
@@ -47,6 +50,9 @@ namespace ZL.DeviceLib.Devices
     {
         private readonly DeviceConfig _cfg;
         public MockPowerSupply(DeviceConfig cfg) { _cfg = cfg; }
+
+        // 资源标识，用于区分同类电源
+        public string ResourceId => _cfg.ResourceId ?? _cfg.ConnectionString;
         public DeviceExecResult Execute(StepConfig step, StepContext context)
         {
             var token = context.Cancellation;
@@ -75,6 +81,9 @@ namespace ZL.DeviceLib.Devices
         private readonly DeviceConfig _cfg;
         private readonly Random _rnd = new Random();
         public MockCurrentMeter(DeviceConfig cfg) { _cfg = cfg; }
+
+        // 资源标识，用于标记物理电流计
+        public string ResourceId => _cfg.ResourceId ?? _cfg.ConnectionString;
         public DeviceExecResult Execute(StepConfig step, StepContext context)
         {
             var token = context.Cancellation;
@@ -105,6 +114,9 @@ namespace ZL.DeviceLib.Devices
         private readonly DeviceConfig _cfg;
         private readonly Random _rnd = new Random();
         public MockResistanceMeter(DeviceConfig cfg) { _cfg = cfg; }
+
+        // 资源标识，指向物理阻值表
+        public string ResourceId => _cfg.ResourceId ?? _cfg.ConnectionString;
         public DeviceExecResult Execute(StepConfig step, StepContext context)
         {
             var token = context.Cancellation;
@@ -130,6 +142,9 @@ namespace ZL.DeviceLib.Devices
         private readonly DeviceConfig _cfg;
         private readonly Random _rnd = new Random();
         public MockNoiseMeter(DeviceConfig cfg) { _cfg = cfg; }
+
+        // 资源标识，指向噪声计占用的物理接口
+        public string ResourceId => _cfg.ResourceId ?? _cfg.ConnectionString;
         public DeviceExecResult Execute(StepConfig step, StepContext context)
         {
             var token = context.Cancellation;
@@ -212,6 +227,9 @@ namespace ZL.DeviceLib.Devices
         private readonly DeviceConfig _cfg;
         private readonly string _dbPath;
         public MockDatabase(DeviceConfig cfg, string dbPath) { _cfg = cfg; _dbPath = dbPath; }
+
+        // 数据库资源标识，可用于锁定数据库文件
+        public string ResourceId => _cfg.ResourceId ?? _dbPath ?? _cfg.ConnectionString;
         public DeviceExecResult Execute(StepConfig step, StepContext context)
         {
             var token = context.Cancellation;
@@ -242,6 +260,9 @@ namespace ZL.DeviceLib.Devices
         private readonly DeviceConfig _cfg;
         private readonly string _reportDir;
         public MockReportGenerator(DeviceConfig cfg, string reportDir) { _cfg = cfg; _reportDir = reportDir; }
+
+        // 报告生成器的资源标识，通常关联输出目录
+        public string ResourceId => _cfg.ResourceId ?? _reportDir ?? _cfg.ConnectionString;
         public DeviceExecResult Execute(StepConfig step, StepContext context)
         {
             var token = context.Cancellation;
@@ -268,6 +289,9 @@ namespace ZL.DeviceLib.Devices
     {
         private readonly DeviceConfig _cfg;
         public MockSystem(DeviceConfig cfg) { _cfg = cfg; }
+
+        // 系统设备的资源标识
+        public string ResourceId => _cfg.ResourceId ?? _cfg.ConnectionString;
         public DeviceExecResult Execute(StepConfig step, StepContext context)
         {
             var token = context.Cancellation;
@@ -317,6 +341,9 @@ namespace ZL.DeviceLib.Devices
         private readonly DeviceConfig _cfg;
         private readonly Random _rnd = new Random();
         public VoltmeterDevice(DeviceConfig config) { _cfg = config; }
+
+        // 电压表使用的物理资源标识
+        public string ResourceId => _cfg.ResourceId ?? _cfg.ConnectionString;
         public DeviceExecResult Execute(StepConfig step, StepContext ctx)
         {
             var token = ctx.Cancellation;

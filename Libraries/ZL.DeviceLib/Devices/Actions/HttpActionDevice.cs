@@ -15,6 +15,9 @@ namespace ZL.DeviceLib.Devices.Actions
         private readonly DeviceConfig _cfg;
         public HttpActionDevice(DeviceConfig cfg) { _cfg = cfg; }
 
+        // 资源标识：HTTP 类设备通常为网络端点
+        public string ResourceId => _cfg.ResourceId ?? _cfg.ConnectionString;
+
         public DeviceExecResult Execute(StepConfig step, StepContext ctx)
         {
             var outputs = new Dictionary<string, object>();

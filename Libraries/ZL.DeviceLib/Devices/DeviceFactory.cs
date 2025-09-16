@@ -42,6 +42,11 @@ namespace ZL.DeviceLib.Devices
 
         private string GetDeviceKey(string deviceName, DeviceConfig cfg)
         {
+            // 优先使用配置中的 ResourceId 作为物理通道标识，确保互斥
+            if (!string.IsNullOrEmpty(cfg.ResourceId))
+                return cfg.ResourceId;
+
+            // 兼容旧配置：若未设置 ResourceId，则回退到设备名或连接串
             return !string.IsNullOrEmpty(deviceName)
                 ? deviceName
                 : (cfg.Type + "|" + (cfg.ConnectionString ?? ""));

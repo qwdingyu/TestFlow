@@ -50,6 +50,7 @@ namespace ZL.WorkflowLib.Workflow
                 DeviceConfig devConf;
                 if (!DeviceServices.Config.Devices.TryGetValue(execStep.Device, out devConf))
                     throw new Exception("Device not found: " + execStep.Device);
+                var key = devConf.ResourceId ?? execStep.Device;
 
                 // 步骤级超时：与全局取消令牌联动
                 var baseToken = DeviceServices.Context != null ? DeviceServices.Context.Cancellation : System.Threading.CancellationToken.None;
@@ -58,9 +59,9 @@ namespace ZL.WorkflowLib.Workflow
                     if (execStep.TimeoutMs > 0)
                         linked.CancelAfter(execStep.TimeoutMs);
                     var stepCtx = DeviceServices.Context != null ? DeviceServices.Context.CloneWithCancellation(linked.Token)
-                                                             : new ZL.DeviceLib.Engine.StepContext(data.Model, linked.Token);
+                                                         : new ZL.DeviceLib.Engine.StepContext(data.Model, linked.Token);
 
-                    var outputs = DeviceServices.Factory.UseDevice(execStep.Device, devConf, dev =>
+                    var outputs = DeviceServices.Factory.UseDevice(key, devConf, dev =>
                     {
                         var result = dev.Execute(execStep, stepCtx);
                         pooledResult.Success = result.Success; pooledResult.Message = result.Message; pooledResult.Outputs = result.Outputs ?? new Dictionary<string, object>();
@@ -109,6 +110,7 @@ namespace ZL.WorkflowLib.Workflow
                 {
                     var execSub = StepUtils.BuildExecutableStep(sub, data);
                     DeviceConfig devConf; if (!DeviceServices.Config.Devices.TryGetValue(execSub.Device, out devConf)) throw new Exception("Device not found: " + execSub.Device);
+                    var key = devConf.ResourceId ?? execSub.Device;
 
                     var baseToken = DeviceServices.Context != null ? DeviceServices.Context.Cancellation : System.Threading.CancellationToken.None;
                     using (var linked = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(baseToken))
@@ -117,7 +119,7 @@ namespace ZL.WorkflowLib.Workflow
                         var stepCtx = DeviceServices.Context != null ? DeviceServices.Context.CloneWithCancellation(linked.Token)
                                                                  : new ZL.DeviceLib.Engine.StepContext(data.Model, linked.Token);
 
-                        var outputs = DeviceServices.Factory.UseDevice(execSub.Device, devConf, dev =>
+                        var outputs = DeviceServices.Factory.UseDevice(key, devConf, dev =>
                         {
                             var result = dev.Execute(execSub, stepCtx);
                             pooledResult.Success = result.Success;

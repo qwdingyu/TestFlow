@@ -14,7 +14,20 @@ using ZL.WorkflowLib.Workflow;
 
 namespace Cli
 {
-    internal class DeviceConfig { public string Type { get; set; } = ""; public string ConnectionString { get; set; } = ""; public Dictionary<string, object> Settings { get; set; } = new(); }
+    internal class DeviceConfig
+    {
+        // 设备类型
+        public string Type { get; set; } = "";
+
+        // 连接字符串
+        public string ConnectionString { get; set; } = "";
+
+        // 资源标识
+        public string ResourceId { get; set; } = "";
+
+        // 设备设置
+        public Dictionary<string, object> Settings { get; set; } = new();
+    }
     internal class StepConfig
     {
         public string Name { get; set; } = ""; public string Description { get; set; } = "";

@@ -10,7 +10,16 @@ namespace MyCompany.MyDriver
     [DeviceType("MyDriver")]
     public class MyDriverDevice : IDevice
     {
-        public MyDriverDevice(DeviceConfig cfg) { /* TODO 读取 cfg.Settings */ }
+        private readonly DeviceConfig _cfg;
+
+        public MyDriverDevice(DeviceConfig cfg)
+        {
+            _cfg = cfg; // 保存配置以便返回资源标识
+            /* TODO 读取 cfg.Settings */
+        }
+
+        // 插件设备的资源标识
+        public string ResourceId => _cfg.ResourceId ?? _cfg.ConnectionString;
         public DeviceExecResult Execute(StepConfig step, StepContext ctx)
         {
             var outputs = new Dictionary<string, object>();

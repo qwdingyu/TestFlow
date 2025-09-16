@@ -12,6 +12,10 @@ namespace ZL.DeviceLib.Devices
     }
     public interface IDevice
     {
+        // 用于描述设备占用的物理资源，例如 "can://ch0"、"serial://COM1"
+        string ResourceId { get; }
+
+        // 执行步骤命令
         DeviceExecResult Execute(StepConfig step, StepContext context);
     }
     public interface IHealthyDevice

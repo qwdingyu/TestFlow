@@ -3,11 +3,13 @@
     "scanner_1": {
       "Type": "scanner",
       "ConnectionString": "COM1:9600,N,8,1",
+      "ResourceId": "serial://COM1",
       "Settings": { "prefix": "STX", "suffix": "ETX" }
     },
     "power_supply_1": {
       "Type": "power_supply",
       "ConnectionString": "TCP192.168.1.100:5025",
+      "ResourceId": "tcp://192.168.1.100:5025",
       "Settings": {
         "model": "PSU-5000",
         "max_voltage": 30.0,
@@ -17,16 +19,19 @@
     "current_meter_1": {
       "Type": "current_meter",
       "ConnectionString": "GPIB0::22::INSTR",
+      "ResourceId": "gpib://0-22",
       "Settings": { "model": "DMM-4000", "auto_range": true }
     },
     "resistance_meter_1": {
       "Type": "resistance_meter",
       "ConnectionString": "USB0::0x1234::0x5678::0123456789::INSTR",
+      "ResourceId": "usb://0x1234/0x5678/0123456789",
       "Settings": { "model": "RMT-2000", "default_range": "10k" }
     },
     "voltmeter_1": {
       "Type": "voltmeter",
       "ConnectionString": "COM6:9600,N,8,1",
+      "ResourceId": "serial://COM6",
       "Settings": {
         "range": "auto",
         "unit": "V",
@@ -37,16 +42,19 @@
     "noise_meter_1": {
       "Type": "noise_meter",
       "ConnectionString": "COM3:115200,N,8,1",
+      "ResourceId": "serial://COM3",
       "Settings": { "model": "SLM-100", "calibration_factor": 0.95 }
     },
     "can_adapter_1": {
       "Type": "can_bus",
       "ConnectionString": "PCAN_USBBUS1",
+      "ResourceId": "can://ch0",
       "Settings": { "baud_rate": 500000, "mode": "normal" }
     },
     "resistor_box": {
       "Type": "resistor_box",
       "ConnectionString": "COM4:9600,N,8,1",
+      "ResourceId": "serial://COM4",
       "Settings": {
         "supported_range": "1-10000",
         "unit": "Ohm",
@@ -56,16 +64,19 @@
     "my_driver_1": {
       "Type": "MyDriver",
       "ConnectionString": "SIM:",
+      "ResourceId": "sim://my_driver_1",
       "Settings": {}
     },
     "http_1": {
       "Type": "http",
       "ConnectionString": "",
+      "ResourceId": "http://",
       "Settings": {}
     },
     "shell_1": {
       "Type": "shell",
       "ConnectionString": "",
+      "ResourceId": "shell://local",
       "Settings": {}
     }
   }

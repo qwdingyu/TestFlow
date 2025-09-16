@@ -14,6 +14,9 @@ namespace ZL.DeviceLib.Devices.Actions
         private readonly DeviceConfig _cfg;
         public ShellActionDevice(DeviceConfig cfg) { _cfg = cfg; }
 
+        // 资源标识：用于区分不同的 shell 执行环境
+        public string ResourceId => _cfg.ResourceId ?? _cfg.ConnectionString;
+
         public DeviceExecResult Execute(StepConfig step, StepContext ctx)
         {
             var outputs = new Dictionary<string, object>();

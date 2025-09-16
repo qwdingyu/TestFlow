@@ -310,8 +310,12 @@ namespace ZL.WorkflowLib.Workflow
             {
                 try
                 {
-                    // 针对该设备的互斥锁（串行化对同一设备的访问，避免串口/会话冲突）
-                    return DeviceLockRegistry.WithLock(deviceName, () =>
+                    // 针对物理资源的互斥锁（ResourceId 优先）
+                    DeviceConfig devConf;
+                    if (!DeviceServices.Config.Devices.TryGetValue(deviceName, out devConf))
+                        throw new Exception("Device not found: " + deviceName);
+                    var key = devConf.ResourceId ?? deviceName;
+                    return DeviceLockRegistry.WithLock(key, () =>
                     {
                         // 为该次执行单独设置更紧的超时（如果有）
                         var baseToken = ctx.Cancellation;
@@ -319,10 +323,6 @@ namespace ZL.WorkflowLib.Workflow
                         {
                             if (timeoutMs > 0) linked.CancelAfter(timeoutMs);
                             var runCtx = new StepContext(ctx.Model, linked.Token);
-
-                            DeviceConfig devConf;
-                            if (!DeviceServices.Config.Devices.TryGetValue(deviceName, out devConf))
-                                throw new Exception("Device not found: " + deviceName);
 
                             var sc = new StepConfig
                             {
@@ -338,7 +338,7 @@ namespace ZL.WorkflowLib.Workflow
                             };
 
                             UiEventBus.PublishLog($"[Exec:{traceId}] -> {deviceName}.{command} (attempt {attempt}/{attempts})");
-                            var outputs = DeviceServices.Factory.UseDevice(deviceName, devConf, dev =>
+                            var outputs = DeviceServices.Factory.UseDevice(key, devConf, dev =>
                             {
                                 var res = dev.Execute(sc, runCtx);
                                 if (!res.Success)
@@ -596,6 +596,7 @@ namespace ZL.WorkflowLib.Workflow
                 {
                     var execSub = StepUtils.BuildExecutableStep(sub, data);
                     DeviceConfig devConf; if (!DeviceServices.Config.Devices.TryGetValue(execSub.Device, out devConf)) throw new Exception("Device not found: " + execSub.Device);
+                    var key = devConf.ResourceId ?? execSub.Device;
 
                     var baseToken = DeviceServices.Context != null ? DeviceServices.Context.Cancellation : System.Threading.CancellationToken.None;
                     using (var linked = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(baseToken))
@@ -604,7 +605,7 @@ namespace ZL.WorkflowLib.Workflow
                         var stepCtx = DeviceServices.Context != null ? DeviceServices.Context.CloneWithCancellation(linked.Token)
                                                                  : new ZL.DeviceLib.Engine.StepContext(data.Model, linked.Token);
 
-                        var outputs = DeviceServices.Factory.UseDevice(execSub.Device, devConf, dev =>
+                        var outputs = DeviceServices.Factory.UseDevice(key, devConf, dev =>
                         {
                             var result = dev.Execute(execSub, stepCtx);
                             pooledResult.Success = result.Success;
