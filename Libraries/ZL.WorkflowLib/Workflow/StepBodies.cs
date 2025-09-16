@@ -1,312 +1,388 @@
 using Newtonsoft.Json;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using WorkflowCore.Interface;
+using WorkflowCore.Models;
 using ZL.DeviceLib;
 using ZL.DeviceLib.Engine;
 using ZL.DeviceLib.Models;
-using WorkflowCore.Interface;
-using WorkflowCore.Models;
 using ZL.WorkflowLib.Engine;
-using Newtonsoft.Json.Linq;
-using System.Collections.Concurrent;
-using System.Threading.Tasks;
-using System.Threading;
 
 namespace ZL.WorkflowLib.Workflow
 {
+    /// <summary>
+    /// 初始化流程上下文，定位第一个可执行步骤并写入测试会话信息。
+    /// </summary>
     public class InitStep : StepBody
     {
         public override ExecutionResult Run(IStepExecutionContext context)
         {
             var data = (FlowData)context.Workflow.Data;
-            data.Done = false; data.LastSuccess = true; data.Model = DeviceServices.Config.Model;
+            data.Done = false;
+            data.LastSuccess = true;
+            data.Model = DeviceServices.Config.Model;
+            data.CurrentStepConfig = null;
+            data.CurrentStepKind = StepExecutionKind.None;
+            data.CurrentExecution = null;
+
             foreach (var s in DeviceServices.Config.TestSteps)
             {
-                if (s.DependsOn == null || s.DependsOn.Count == 0) { data.Current = s.Name; break; }
+                if (s.DependsOn == null || s.DependsOn.Count == 0)
+                {
+                    data.Current = s.Name;
+                    break;
+                }
             }
-            if (string.IsNullOrEmpty(data.Current)) data.Done = true;
+
+            if (string.IsNullOrEmpty(data.Current))
+                data.Done = true;
+
             data.SessionId = DeviceServices.Db.StartTestSession(data.Model, data.Sn);
             UiEventBus.PublishLog($"[Init] 产品={data.Model}, SN={data.Sn}, SessionId={data.SessionId}, 起始步骤={data.Current}");
             return ExecutionResult.Next();
         }
     }
 
-    //public class DeviceExecStep : StepBody
-    //{
-    //    public override ExecutionResult Run(IStepExecutionContext context)
-    //    {
-    //        var data = (FlowData)context.Workflow.Data;
-    //        if (data.Done || string.IsNullOrEmpty(data.Current))
-    //            return ExecutionResult.Next();
-    //        var stepCfg = DeviceServices.Config.TestSteps.Find(x => x.Name == data.Current);
-    //        if (stepCfg == null)
-    //        {
-    //            data.LastSuccess = false;
-    //            UiEventBus.PublishLog($"[DeviceExec] 未找到步骤配置: {data.Current}");
-    //            return ExecutionResult.Next();
-    //        }
-    //        UiEventBus.PublishLog($"--[Flow] 开始 {stepCfg.Name}, 设备【{stepCfg.Device}】, 描述【{stepCfg.Description}】, 下一步【{stepCfg.OnSuccess}】");
-    //        var started = DateTime.Now;
-    //        var pooledResult = StepResultPool.Instance.Get();
-    //        try
-    //        {
-    //            var execStep = StepUtils.BuildExecutableStep(stepCfg, data);
-    //            DeviceConfig devConf;
-    //            if (!DeviceServices.Config.Devices.TryGetValue(execStep.Device, out devConf))
-    //                throw new Exception("Device not found: " + execStep.Device);
-
-    //            // 步骤级超时：与全局取消令牌联动
-    //            var baseToken = DeviceServices.Context != null ? DeviceServices.Context.Cancellation : System.Threading.CancellationToken.None;
-    //            using (var linked = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(baseToken))
-    //            {
-    //                if (execStep.TimeoutMs > 0)
-    //                    linked.CancelAfter(execStep.TimeoutMs);
-    //                var stepCtx = DeviceServices.Context != null ? DeviceServices.Context.CloneWithCancellation(linked.Token)
-    //                                                         : new ZL.DeviceLib.Engine.StepContext(data.Model, linked.Token);
-
-    //                var outputs = DeviceServices.Factory.UseDevice(execStep.Device, devConf, dev =>
-    //                {
-    //                    var result = dev.Execute(execStep, stepCtx);
-    //                    pooledResult.Success = result.Success; pooledResult.Message = result.Message; pooledResult.Outputs = result.Outputs ?? new Dictionary<string, object>();
-    //                    return pooledResult.Outputs;
-    //                });
-    //            }
-    //            string reason;
-    //            bool passExpected = ResultEvaluator.Evaluate(execStep.ExpectedResults, pooledResult.Outputs, execStep.Parameters, out reason);
-    //            if (!passExpected)
-    //            {
-    //                pooledResult.Success = false;
-    //                pooledResult.Message = (pooledResult.Message ?? "") + " | expected mismatch: " + reason;
-    //            }
-    //            DeviceServices.Db.AppendStep(data.SessionId, data.Model, data.Sn, execStep.Name, execStep.Description, execStep.Device, execStep.Command,
-    //                JsonConvert.SerializeObject(execStep.Parameters), JsonConvert.SerializeObject(execStep.ExpectedResults), JsonConvert.SerializeObject(pooledResult.Outputs),
-    //                pooledResult.Success ? 1 : 0, pooledResult.Message, started, DateTime.Now);
-    //            data.LastSuccess = pooledResult.Success;
-    //            UiEventBus.PublishLog($"[Step] {execStep.Name} | 设备={execStep.Device} | Success={pooledResult.Success} | Msg={pooledResult.Message}");
-    //        }
-    //        catch (Exception ex)
-    //        {
-    //            data.LastSuccess = false;
-    //            DeviceServices.Db.AppendStep(data.SessionId, data.Model, data.Sn, stepCfg.Name, stepCfg.Description, stepCfg.Device, stepCfg.Command,
-    //                JsonConvert.SerializeObject(stepCfg.Parameters), JsonConvert.SerializeObject(stepCfg.ExpectedResults), null, 0, "Exception: " + ex.Message, started, DateTime.Now);
-    //            UiEventBus.PublishLog($"[Step-Exception] {stepCfg.Name} | 错误={ex.Message}");
-    //        }
-    //        finally
-    //        {
-    //            StepResultPool.Instance.Return(pooledResult);
-    //        }
-    //        return ExecutionResult.Next();
-    //    }
-    //}
-
     /// <summary>
-    /// 瑞士军刀版 DeviceExecStep
-    /// - 支持任意节点的跨设备并发（ExtraDevices）
-    /// - 并行/串行，等待/忽略策略，重试、超时、聚合模式、设备互斥锁、前后置延迟
-    /// - 与原有数据库记录 / 期望评估逻辑保持一致
+    /// 解析当前步骤的基础信息，判断后续需要走的执行分支（设备步骤/子流程/引用等）。
     /// </summary>
-    public class DeviceExecStep : StepBody
+    public class ResolveStepContextStep : StepBody
     {
         public override ExecutionResult Run(IStepExecutionContext context)
         {
             var data = (FlowData)context.Workflow.Data;
+            data.CurrentStepConfig = null;
+            data.CurrentExecution = null;
+            data.CurrentStepKind = StepExecutionKind.None;
+
             if (data.Done || string.IsNullOrEmpty(data.Current))
                 return ExecutionResult.Next();
 
             var stepCfg = DeviceServices.Config.TestSteps.Find(x => x.Name == data.Current);
+            data.CurrentStepConfig = stepCfg;
+
             if (stepCfg == null)
             {
                 data.LastSuccess = false;
-                UiEventBus.PublishLog($"[DeviceExec] 未找到步骤配置: {data.Current}");
+                UiEventBus.PublishLog($"[Resolve] 未找到步骤配置: {data.Current}");
                 return ExecutionResult.Next();
             }
-            UiEventBus.PublishLog($"--[Flow] 开始 {stepCfg.Name}, 设备【{stepCfg.Device}】, 描述【{stepCfg.Description}】, 下一步【{stepCfg.OnSuccess}】");
-            var started = DateTime.Now;
 
-            var pooledResult = StepResultPool.Instance.Get();  // 和原来一致：复用对象池承载输出
+            var type = string.IsNullOrWhiteSpace(stepCfg.Type) ? "Normal" : stepCfg.Type.Trim();
+            if (string.Equals(type, "SubFlow", StringComparison.OrdinalIgnoreCase))
+            {
+                data.CurrentStepKind = StepExecutionKind.SubFlow;
+                return ExecutionResult.Next();
+            }
+
+            if (string.Equals(type, "SubFlowRef", StringComparison.OrdinalIgnoreCase))
+            {
+                data.CurrentStepKind = StepExecutionKind.SubFlowReference;
+                return ExecutionResult.Next();
+            }
+
+            data.CurrentStepKind = StepExecutionKind.Device;
+            return ExecutionResult.Next();
+        }
+    }
+
+    /// <summary>
+    /// 针对设备步骤生成可执行的配置对象，并解析瑞士军刀扩展参数。
+    /// </summary>
+    public class PrepareDeviceExecutionStep : StepBody
+    {
+        public override ExecutionResult Run(IStepExecutionContext context)
+        {
+            var data = (FlowData)context.Workflow.Data;
+            if (data.Done || data.CurrentStepKind != StepExecutionKind.Device)
+                return ExecutionResult.Next();
+
+            if (data.CurrentStepConfig == null)
+            {
+                data.LastSuccess = false;
+                UiEventBus.PublishLog("[Prepare] 当前步骤配置缺失，无法执行设备指令");
+                return ExecutionResult.Next();
+            }
+
+            var execStep = StepUtils.BuildExecutableStep(data.CurrentStepConfig, data);
+            var spec = DeviceExecSpec.ParseFrom(execStep.Parameters);
+            var execution = new DeviceExecutionContext
+            {
+                SourceStep = data.CurrentStepConfig,
+                ExecutableStep = execStep,
+                Specification = spec,
+                TraceId = Guid.NewGuid().ToString("N").Substring(0, 8),
+                StartedAt = DateTime.Now,
+                MainSuccess = false
+            };
+
+            data.CurrentExecution = execution;
+
+            UiEventBus.PublishLog($"--[Flow] 开始 {execStep.Name}, 设备【{execStep.Device}】, 描述【{execStep.Description}】, 下一步【{execStep.OnSuccess}】");
+            return ExecutionResult.Next();
+        }
+    }
+
+    /// <summary>
+    /// 在主设备执行前统一申请互斥锁，避免多个流程并发访问同一物理设备。
+    /// </summary>
+    public class DeviceLockStep : StepBody
+    {
+        /// <summary>
+        /// 由 Workflow 构建器注入的目标设备名称。
+        /// </summary>
+        public string DeviceName { get; set; }
+
+        public override ExecutionResult Run(IStepExecutionContext context)
+        {
+            var data = (FlowData)context.Workflow.Data;
+            if (data.Done || data.CurrentExecution == null)
+                return ExecutionResult.Next();
+
+            if (string.IsNullOrWhiteSpace(DeviceName) && data.CurrentExecution.ExecutableStep != null)
+                DeviceName = data.CurrentExecution.ExecutableStep.Device;
+
+            if (string.IsNullOrWhiteSpace(DeviceName))
+                return ExecutionResult.Next();
+
+            if (data.CurrentExecution.MainLockHandle != null)
+                return ExecutionResult.Next();
+
+            data.CurrentExecution.MainLockHandle = DeviceLockRegistry.Acquire(DeviceName);
+            UiEventBus.PublishLog($"[Lock] 获取设备互斥锁：{DeviceName}");
+            return ExecutionResult.Next();
+        }
+    }
+
+    /// <summary>
+    /// 主设备执行 StepBody，支持构建期注入的重试与延迟策略。
+    /// </summary>
+    public class MainDeviceStep : StepBody, IRetryConfigurable, IDelayConfigurable
+    {
+        public int RetryAttempts { get; set; } = 1;
+        public int RetryDelayMs { get; set; }
+        public int PreDelayMs { get; set; }
+        public int PostDelayMs { get; set; }
+
+        public override ExecutionResult Run(IStepExecutionContext context)
+        {
+            var data = (FlowData)context.Workflow.Data;
+            var exec = data.CurrentExecution;
+            if (data.Done || exec == null)
+                return ExecutionResult.Next();
+
             try
             {
-                // 解析执行用的 Step（支持 @from_db 等展开）
-                var execStep = StepUtils.BuildExecutableStep(stepCfg, data);
+                DeviceExecutionHelper.SafeDelay(PreDelayMs, data.Cancellation);
 
-                // 解析瑞士军刀配置（全部可选）
-                var execSpec = ExecSpec.ParseFrom(execStep.Parameters);
+                var retry = new RetrySpec { Attempts = RetryAttempts, DelayMs = RetryDelayMs };
+                exec.MainOutputs = DeviceExecutionHelper.ExecuteDeviceCommand(
+                    data,
+                    exec.ExecutableStep.Device,
+                    exec.ExecutableStep.Command,
+                    exec.ExecutableStep.Parameters,
+                    exec.ExecutableStep.TimeoutMs,
+                    retry,
+                    exec.TraceId,
+                    useLock: false);
 
-                // 设备超时与全局取消联合
-                var baseToken = DeviceServices.Context != null ? DeviceServices.Context.Cancellation : CancellationToken.None;
-                using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(baseToken))
-                {
-                    if (execStep.TimeoutMs > 0) linkedCts.CancelAfter(execStep.TimeoutMs);
-                    var stepCtx = DeviceServices.Context != null ? DeviceServices.Context.CloneWithCancellation(linkedCts.Token)
-                                                              : new StepContext(data.Model, linkedCts.Token);
-
-                    // traceId 贯穿日志
-                    var traceId = Guid.NewGuid().ToString("N").Substring(0, 8);
-
-                    // 前置延迟（对齐测量窗口）
-                    if (execSpec.PreDelayMs > 0)
-                        SafeDelay(execSpec.PreDelayMs, stepCtx.Cancellation);
-
-                    // 构建主设备任务（可加重试）
-                    Func<Dictionary<string, object>> runMain = () =>
-                    {
-                        return ExecuteWithRetry(execStep.Device, execStep.Command, execStep.Parameters, execStep.TimeoutMs,
-                                                execSpec.MainRetry, stepCtx, traceId);
-                    };
-
-                    // 构建附属设备任务列表
-                    var extraPlans = execSpec.Extras ?? new List<ExtraDeviceSpec>(0);
-                    var extraTasks = new List<Task<KeyValuePair<string, Dictionary<string, object>>>>();
-
-                    Action startExtras = () =>
-                    {
-                        for (int i = 0; i < extraPlans.Count; i++)
-                        {
-                            var ex = extraPlans[i];
-                            if (ex.Start == ExtraStart.Before && execSpec.Mode != ExecMode.ExtrasFirst)
-                                continue; // 不在此时机启动
-
-                            if (ex.Start == ExtraStart.After && execSpec.Mode != ExecMode.MainFirst)
-                                continue;
-
-                            var alias = string.IsNullOrEmpty(ex.Alias) ? ex.Device : ex.Alias;
-
-                            var t = Task.Run(() =>
-                            {
-                                var outputs = ExecuteWithRetry(ex.Device, ex.Command, ex.Parameters, ex.TimeoutMs,
-                                                               ex.Retry, stepCtx, traceId);
-                                return new KeyValuePair<string, Dictionary<string, object>>(alias, outputs);
-                            }, stepCtx.Cancellation);
-
-                            if (ex.Join == ExtraJoin.Wait)
-                                extraTasks.Add(t);
-                            else
-                                _ = t.ContinueWith(_ => { }, TaskContinuationOptions.ExecuteSynchronously);
-                        }
-                    };
-
-                    // 执行编排
-                    Dictionary<string, object> mainOutputs = null;
-                    bool mainSucceeded = false;
-                    Exception mainError = null;
-
-                    if (execSpec.Mode == ExecMode.MainFirst)
-                    {
-                        // 先主，再附属
-                        mainOutputs = TryRun(runMain, out mainSucceeded, out mainError);
-                        startExtras(); // 启动 Start=after/with_main 的任务
-                    }
-                    else if (execSpec.Mode == ExecMode.ExtrasFirst)
-                    {
-                        // 先附属（Start=before/with_main）
-                        startExtras();
-                        mainOutputs = TryRun(runMain, out mainSucceeded, out mainError);
-                    }
-                    else // parallel
-                    {
-                        // 并行：先启动 with_main 的附属，再启主
-                        // 也允许 Extra.Start=with_main 的在并行时一起起
-                        startExtras();
-                        mainOutputs = TryRun(runMain, out mainSucceeded, out mainError);
-                    }
-
-                    // 等待附属（wait策略的）
-                    bool extrasSucceeded = true;
-                    var extrasOutputs = new Dictionary<string, Dictionary<string, object>>();
-
-                    if (extraTasks.Count > 0)
-                    {
-                        try
-                        {
-                            Task.WaitAll(extraTasks.ToArray(), stepCtx.Cancellation);
-                        }
-                        catch (Exception)
-                        {
-                            // 至少一个任务异常或取消
-                        }
-
-                        for (int i = 0; i < extraTasks.Count; i++)
-                        {
-                            var t = extraTasks[i];
-                            if (t.Status == TaskStatus.RanToCompletion)
-                            {
-                                extrasOutputs[t.Result.Key] = t.Result.Value ?? new Dictionary<string, object>();
-                            }
-                            else
-                            {
-                                extrasSucceeded = false;
-                            }
-                        }
-                    }
-
-                    // 聚合输出
-                    var merged = MergeOutputs(execSpec.Aggregation, mainOutputs, extrasOutputs);
-
-                    // 后置延迟
-                    if (execSpec.PostDelayMs > 0)
-                        SafeDelay(execSpec.PostDelayMs, stepCtx.Cancellation);
-
-                    // 组装结果
-                    pooledResult.Outputs = merged;
-
-                    // 成功判定：主失败 = 整步失败；主成功 + 附属失败 → 看策略
-                    bool finalSuccess = mainSucceeded &&
-                                        (extrasSucceeded || execSpec.ContinueOnExtraFailure);
-
-                    pooledResult.Success = finalSuccess;
-                    pooledResult.Message = BuildMessage(finalSuccess, mainError, extrasSucceeded, execSpec);
-
-                    // 期望值评估（沿用原有逻辑）
-                    ExpectedResultEvaluator.ApplyToStepResult(execStep, pooledResult, logSuccess: false, logFailure: false);
-
-                    // 写库（沿用原逻辑）
-                    DeviceServices.Db.AppendStep(
-                        data.SessionId, data.Model, data.Sn,
-                        execStep.Name, execStep.Description, execStep.Device, execStep.Command,
-                        JsonConvert.SerializeObject(execStep.Parameters),
-                        JsonConvert.SerializeObject(execStep.ExpectedResults),
-                        JsonConvert.SerializeObject(pooledResult.Outputs),
-                        pooledResult.Success ? 1 : 0, pooledResult.Message, started, DateTime.Now);
-
-                    data.LastSuccess = pooledResult.Success;
-                    UiEventBus.PublishLog($"[Step] {execStep.Name} | 设备={execStep.Device} | Success={pooledResult.Success} | Msg={pooledResult.Message}");
-                }
+                exec.MainSuccess = true;
+                exec.MainError = null;
             }
             catch (Exception ex)
             {
-                // 使用完整异常字符串确保日志中包含堆栈信息，便于后续排查
-                                var exceptionDetail = ex.ToString();
-                                data.LastSuccess = false;
-                                DeviceServices.Db.AppendStep(
-                                    data.SessionId, data.Model, data.Sn,
-                                    stepCfg.Name, stepCfg.Description, stepCfg.Device, stepCfg.Command,
-                                    JsonConvert.SerializeObject(stepCfg.Parameters),
-                                    JsonConvert.SerializeObject(stepCfg.ExpectedResults),
-                                    null, 0, "Exception: " + exceptionDetail, started, DateTime.Now);
-                                UiEventBus.PublishLog(
-                                    $"[Step-Exception] {stepCfg.Name} | SessionId={data.SessionId} | 模型={data.Model} | SN={data.Sn} | 错误详情={exceptionDetail}");
+                exec.MainSuccess = false;
+                exec.MainError = ex;
+                exec.MainOutputs = new Dictionary<string, object>();
+                UiEventBus.PublishLog($"[Main] {exec.ExecutableStep.Device}.{exec.ExecutableStep.Command} 失败：{ex.Message}");
             }
             finally
             {
-                StepResultPool.Instance.Return(pooledResult);
+                DeviceExecutionHelper.SafeDelay(PostDelayMs, data.Cancellation);
+
+                if (exec.MainLockHandle != null)
+                {
+                    try
+                    {
+                        exec.MainLockHandle.Dispose();
+                        UiEventBus.PublishLog($"[Lock] 释放设备互斥锁：{exec.ExecutableStep.Device}");
+                    }
+                    catch
+                    {
+                    }
+                    finally
+                    {
+                        exec.MainLockHandle = null;
+                    }
+                }
             }
 
             return ExecutionResult.Next();
         }
+    }
 
-        /// <summary>
-        /// 提供给子流程编排器复用的执行入口：
-        /// 在不依赖 WorkflowCore 上下文的前提下，完成单个设备步骤的实际执行、超时控制与期望值校验。
-        /// </summary>
-        /// <param name="step">已经过参数展开后的步骤配置。</param>
-        /// <param name="sharedCtx">子流程共享的步骤上下文，用于复用模型信息与取消令牌。</param>
-        /// <returns>封装执行状态、输出以及时间戳的结果对象。</returns>
+    /// <summary>
+    /// 附属设备执行 StepBody，根据阶段筛选需要运行的附属设备，并合并输出。
+    /// </summary>
+    public class ExtraDeviceStep : StepBody, IRetryConfigurable, IDelayConfigurable
+    {
+        public ExtraDevicePhase Phase { get; set; }
+        public int RetryAttempts { get; set; } = 1;
+        public int RetryDelayMs { get; set; }
+        public int PreDelayMs { get; set; }
+        public int PostDelayMs { get; set; }
+
+        public override ExecutionResult Run(IStepExecutionContext context)
+        {
+            var data = (FlowData)context.Workflow.Data;
+            var exec = data.CurrentExecution;
+            if (data.Done || exec == null)
+                return ExecutionResult.Next();
+
+            var extras = exec.Specification.SelectExtras(Phase).ToList();
+            if (extras.Count == 0)
+                return ExecutionResult.Next();
+
+            DeviceExecutionHelper.SafeDelay(PreDelayMs, data.Cancellation);
+
+            for (int i = 0; i < extras.Count; i++)
+            {
+                var extra = extras[i];
+                var alias = string.IsNullOrWhiteSpace(extra.Alias) ? extra.Device : extra.Alias;
+                var retry = extra.Retry ?? new RetrySpec { Attempts = RetryAttempts, DelayMs = RetryDelayMs };
+
+                if (extra.Join == ExtraJoin.Forget)
+                {
+                    DeviceExecutionHelper.FireAndForgetExtra(data, extra, retry, exec.TraceId);
+                    continue;
+                }
+
+                try
+                {
+                    var outputs = DeviceExecutionHelper.ExecuteDeviceCommand(
+                        data,
+                        extra.Device,
+                        extra.Command,
+                        extra.Parameters,
+                        extra.TimeoutMs,
+                        retry,
+                        exec.TraceId,
+                        useLock: true);
+
+                    exec.ExtraOutputs[alias] = outputs ?? new Dictionary<string, object>();
+                }
+                catch (Exception ex)
+                {
+                    exec.ExtrasSuccess = false;
+                    UiEventBus.PublishLog($"[Extra] {extra.Device}.{extra.Command} 失败：{ex.Message}");
+                }
+            }
+
+            DeviceExecutionHelper.SafeDelay(PostDelayMs, data.Cancellation);
+            return ExecutionResult.Next();
+        }
+    }
+
+    /// <summary>
+    /// 汇总主/附属设备的执行结果，写入数据库并更新流程状态。
+    /// </summary>
+    public class FinalizeDeviceStep : StepBody
+    {
+        public override ExecutionResult Run(IStepExecutionContext context)
+        {
+            var data = (FlowData)context.Workflow.Data;
+            var exec = data.CurrentExecution;
+            if (data.Done || data.CurrentStepKind != StepExecutionKind.Device || exec == null)
+                return ExecutionResult.Next();
+
+            var pooledResult = StepResultPool.Instance.Get();
+            try
+            {
+                exec.FinishedAt = DateTime.Now;
+                pooledResult.Outputs = DeviceExecutionHelper.MergeOutputs(
+                    exec.Specification.Aggregation,
+                    exec.MainOutputs,
+                    exec.ExtraOutputs);
+
+                bool finalSuccess = exec.MainSuccess &&
+                                    (exec.ExtrasSuccess || exec.Specification.ContinueOnExtraFailure);
+
+                pooledResult.Success = finalSuccess;
+                pooledResult.Message = DeviceExecutionHelper.BuildMessage(finalSuccess, exec.MainError, exec.ExtrasSuccess, exec.Specification);
+
+                ExpectedResultEvaluator.ApplyToStepResult(exec.ExecutableStep, pooledResult, logSuccess: false, logFailure: false);
+
+                DeviceServices.Db.AppendStep(
+                    data.SessionId,
+                    data.Model,
+                    data.Sn,
+                    exec.ExecutableStep.Name,
+                    exec.ExecutableStep.Description,
+                    exec.ExecutableStep.Device,
+                    exec.ExecutableStep.Command,
+                    JsonConvert.SerializeObject(exec.ExecutableStep.Parameters),
+                    JsonConvert.SerializeObject(exec.ExecutableStep.ExpectedResults),
+                    JsonConvert.SerializeObject(pooledResult.Outputs),
+                    pooledResult.Success ? 1 : 0,
+                    pooledResult.Message,
+                    exec.StartedAt,
+                    exec.FinishedAt);
+
+                data.LastSuccess = pooledResult.Success;
+                UiEventBus.PublishLog($"[Step] {exec.ExecutableStep.Name} | 设备={exec.ExecutableStep.Device} | Success={pooledResult.Success} | Msg={pooledResult.Message}");
+            }
+            catch (Exception ex)
+            {
+                var exceptionDetail = ex.ToString();
+                data.LastSuccess = false;
+                DeviceServices.Db.AppendStep(
+                    data.SessionId,
+                    data.Model,
+                    data.Sn,
+                    exec.SourceStep != null ? exec.SourceStep.Name : data.Current,
+                    exec.SourceStep != null ? exec.SourceStep.Description : string.Empty,
+                    exec.SourceStep != null ? exec.SourceStep.Device : string.Empty,
+                    exec.SourceStep != null ? exec.SourceStep.Command : string.Empty,
+                    JsonConvert.SerializeObject(exec.SourceStep != null ? exec.SourceStep.Parameters : null),
+                    JsonConvert.SerializeObject(exec.SourceStep != null ? exec.SourceStep.ExpectedResults : null),
+                    null,
+                    0,
+                    "Exception: " + exceptionDetail,
+                    exec.StartedAt == default(DateTime) ? DateTime.Now : exec.StartedAt,
+                    DateTime.Now);
+                UiEventBus.PublishLog($"[Step-Exception] {data.Current} | SessionId={data.SessionId} | 模型={data.Model} | SN={data.Sn} | 错误详情={exceptionDetail}");
+            }
+            finally
+            {
+                StepResultPool.Instance.Return(pooledResult);
+
+                if (exec.MainLockHandle != null)
+                {
+                    try { exec.MainLockHandle.Dispose(); } catch { }
+                    exec.MainLockHandle = null;
+                }
+
+                data.CurrentExecution = null;
+            }
+
+            return ExecutionResult.Next();
+        }
+    }
+
+    /// <summary>
+    /// 为子流程执行器保留的兼容入口，复用统一的设备执行逻辑。
+    /// </summary>
+    public static class DeviceExecStep
+    {
         internal static OrchTaskResult ExecuteSingleStep(StepConfig step, StepContext sharedCtx)
         {
             var now = DateTime.Now;
             if (step == null)
             {
-                // 兜底返回：避免外部调用方因配置缺失而出现空引用异常。
                 return new OrchTaskResult
                 {
                     Success = false,
@@ -324,17 +400,14 @@ namespace ZL.WorkflowLib.Workflow
             };
 
             var pooledResult = StepResultPool.Instance.Get();
-
             try
             {
-                // 统一处理步骤级超时：与共享上下文中的取消令牌进行合并，保障超时后能及时退出。
                 var baseToken = sharedCtx != null ? sharedCtx.Cancellation : CancellationToken.None;
                 using (var linked = CancellationTokenSource.CreateLinkedTokenSource(baseToken))
                 {
                     if (step.TimeoutMs > 0)
                         linked.CancelAfter(step.TimeoutMs);
 
-                    // 沿用全局上下文信息（模型、Bag 等），仅替换取消令牌。
                     var model = sharedCtx != null ? sharedCtx.Model : DeviceServices.Config != null ? DeviceServices.Config.Model : string.Empty;
                     var stepCtx = sharedCtx != null
                         ? sharedCtx.CloneWithCancellation(linked.Token)
@@ -351,7 +424,6 @@ namespace ZL.WorkflowLib.Workflow
                     pooledResult.Outputs = execResult.Outputs ?? new Dictionary<string, object>();
                 }
 
-                // 统一走期望值校验逻辑，保持与主流程一致的判断结果。
                 ExpectedResultEvaluator.ApplyToStepResult(step, pooledResult, logSuccess: false, logFailure: false);
 
                 taskResult.Success = pooledResult.Success;
@@ -373,37 +445,177 @@ namespace ZL.WorkflowLib.Workflow
 
             return taskResult;
         }
+    }
 
-        // ===== 执行主/附属一次（带重试 + 设备锁 + 超时）=====
-        private static Dictionary<string, object> ExecuteWithRetry(
-            string deviceName, string command, IDictionary<string, object> parameters, int timeoutMs,
-            RetrySpec retry, StepContext ctx, string traceId)
+    /// <summary>
+    /// 执行内嵌子流程（Type=SubFlow）。
+    /// </summary>
+    public class ExecuteSubFlowStep : StepBody
+    {
+        public override ExecutionResult Run(IStepExecutionContext context)
+        {
+            var data = (FlowData)context.Workflow.Data;
+            if (data.Done || data.CurrentStepKind != StepExecutionKind.SubFlow)
+                return ExecutionResult.Next();
+
+            if (data.CurrentStepConfig == null)
+            {
+                data.LastSuccess = false;
+                UiEventBus.PublishLog($"[SubFlow] 当前步骤配置缺失: {data.Current}");
+                return ExecutionResult.Next();
+            }
+
+            try
+            {
+                new SubFlowExecutor().RunSubFlow(data.CurrentStepConfig, data, data.CurrentStepConfig);
+            }
+            catch (Exception ex)
+            {
+                var exceptionDetail = ex.ToString();
+                data.LastSuccess = false;
+                UiEventBus.PublishLog($"[SubFlow] 执行 {data.CurrentStepConfig.Name} 异常: {exceptionDetail}");
+            }
+
+            return ExecutionResult.Next();
+        }
+    }
+
+    /// <summary>
+    /// 执行子流程引用节点（Type=SubFlowRef）。
+    /// </summary>
+    public class ExecuteSubFlowReferenceStep : StepBody
+    {
+        public override ExecutionResult Run(IStepExecutionContext context)
+        {
+            var data = (FlowData)context.Workflow.Data;
+            if (data.Done || data.CurrentStepKind != StepExecutionKind.SubFlowReference)
+                return ExecutionResult.Next();
+
+            if (data.CurrentStepConfig == null)
+            {
+                data.LastSuccess = false;
+                UiEventBus.PublishLog($"[SubFlowRef] 当前步骤配置缺失: {data.Current}");
+                return ExecutionResult.Next();
+            }
+
+            if (string.IsNullOrWhiteSpace(data.CurrentStepConfig.Ref))
+            {
+                data.LastSuccess = false;
+                UiEventBus.PublishLog($"[SubFlowRef] 步骤 {data.CurrentStepConfig.Name} 缺少 Ref 字段");
+                return ExecutionResult.Next();
+            }
+
+            StepConfig subDef;
+            if (WorkflowServices.Subflows != null && WorkflowServices.Subflows.TryGet(data.CurrentStepConfig.Ref, out subDef))
+            {
+                UiEventBus.PublishLog($"[SubFlowRef] 执行子流程引用 {data.CurrentStepConfig.Ref} (from {data.CurrentStepConfig.Name})");
+                try
+                {
+                    new SubFlowExecutor().RunSubFlow(subDef, data, data.CurrentStepConfig);
+                }
+                catch (Exception ex)
+                {
+                    var exceptionDetail = ex.ToString();
+                    data.LastSuccess = false;
+                    UiEventBus.PublishLog($"[SubFlowRef] 执行 {data.CurrentStepConfig.Ref} 异常: {exceptionDetail}");
+                }
+            }
+            else
+            {
+                data.LastSuccess = false;
+                UiEventBus.PublishLog($"[SubFlowRef] 未找到子流程引用: {data.CurrentStepConfig.Ref} (from {data.CurrentStepConfig.Name})");
+            }
+
+            return ExecutionResult.Next();
+        }
+    }
+
+    /// <summary>
+    /// 根据上一步结果选择下一步，流程结束时写入最终状态。
+    /// </summary>
+    public class RouteStep : StepBody
+    {
+        public override ExecutionResult Run(IStepExecutionContext context)
+        {
+            var data = (FlowData)context.Workflow.Data;
+            if (data.Done || string.IsNullOrEmpty(data.Current))
+                return ExecutionResult.Next();
+
+            var stepCfg = data.CurrentStepConfig ?? DeviceServices.Config.TestSteps.Find(x => x.Name == data.Current);
+            if (stepCfg == null)
+            {
+                data.Done = true;
+                UiEventBus.PublishLog("[Route] 找不到当前步骤配置，强制结束");
+            }
+            else
+            {
+                string next = data.LastSuccess ? stepCfg.OnSuccess : stepCfg.OnFailure;
+                UiEventBus.PublishLog($"[Route] {stepCfg.Name} -> {(string.IsNullOrEmpty(next) ? "(结束)" : next)} | LastSuccess={data.LastSuccess}");
+
+                if (string.IsNullOrEmpty(next))
+                {
+                    data.Done = true;
+                }
+                else
+                {
+                    data.Current = next;
+                }
+            }
+
+            data.CurrentStepConfig = null;
+            data.CurrentExecution = null;
+            data.CurrentStepKind = StepExecutionKind.None;
+
+            if (data.Done)
+            {
+                DeviceServices.Db.FinishTestSession(data.SessionId, data.LastSuccess ? 1 : 0);
+                UiEventBus.PublishCompleted(data.SessionId.ToString(), data.Model);
+            }
+
+            return ExecutionResult.Next();
+        }
+    }
+
+    /// <summary>
+    /// 承载设备执行相关的通用辅助方法，供多个 StepBody 复用。
+    /// </summary>
+    internal static class DeviceExecutionHelper
+    {
+        public static Dictionary<string, object> ExecuteDeviceCommand(
+            FlowData data,
+            string deviceName,
+            string command,
+            IDictionary<string, object> parameters,
+            int timeoutMs,
+            RetrySpec retry,
+            string traceId,
+            bool useLock)
         {
             int attempts = retry != null && retry.Attempts > 0 ? retry.Attempts : 1;
-            int delayMs = retry != null ? Math.Max(0, retry.DelayMs) : 0;
+            int delayMs = retry != null && retry.DelayMs > 0 ? retry.DelayMs : 0;
 
+            var baseContext = CreateBaseContext(data);
             for (int attempt = 1; attempt <= attempts; attempt++)
             {
                 try
                 {
-                    // 针对该设备的互斥锁（串行化对同一设备的访问，避免串口/会话冲突）
-                    return DeviceLockRegistry.WithLock(deviceName, () =>
+                    Func<Dictionary<string, object>> runner = () =>
                     {
-                        // 为该次执行单独设置更紧的超时（如果有）
-                        var baseToken = ctx.Cancellation;
-                        using (var linked = CancellationTokenSource.CreateLinkedTokenSource(baseToken))
+                        using (var linked = CancellationTokenSource.CreateLinkedTokenSource(baseContext.Cancellation))
                         {
-                            if (timeoutMs > 0) linked.CancelAfter(timeoutMs);
-                            var runCtx = new StepContext(ctx.Model, linked.Token);
+                            if (timeoutMs > 0)
+                                linked.CancelAfter(timeoutMs);
+
+                            var runCtx = baseContext.CloneWithCancellation(linked.Token);
 
                             DeviceConfig devConf;
                             if (!DeviceServices.Config.Devices.TryGetValue(deviceName, out devConf))
                                 throw new Exception("Device not found: " + deviceName);
 
-                            var sc = new StepConfig
+                            var execStep = new StepConfig
                             {
                                 Name = $"{deviceName}:{command}",
-                                Description = "",
+                                Description = string.Empty,
                                 Device = deviceName,
                                 Command = command,
                                 Parameters = parameters != null
@@ -416,30 +628,53 @@ namespace ZL.WorkflowLib.Workflow
                             UiEventBus.PublishLog($"[Exec:{traceId}] -> {deviceName}.{command} (attempt {attempt}/{attempts})");
                             var outputs = DeviceServices.Factory.UseDevice(deviceName, devConf, dev =>
                             {
-                                var res = dev.Execute(sc, runCtx);
+                                var res = dev.Execute(execStep, runCtx);
                                 if (!res.Success)
                                     throw new Exception("Device exec failed: " + res.Message);
                                 return res.Outputs ?? new Dictionary<string, object>();
                             });
+
                             return outputs ?? new Dictionary<string, object>();
                         }
-                    });
+                    };
+
+                    if (useLock)
+                        return DeviceLockRegistry.RunWithLock(deviceName, runner);
+
+                    return runner();
                 }
                 catch (Exception ex)
                 {
-                    if (attempt >= attempts) throw;
-                    // 缓存完整异常文本，确保重试日志记录下详细的异常原因
+                    if (attempt >= attempts)
+                        throw;
+
                     var exceptionDetail = ex.ToString();
-                    UiEventBus.PublishLog(
-                        $"[Retry] {deviceName}.{command} 失败：{exceptionDetail}，{delayMs}ms 后重试（第 {attempt} 次，共 {attempts} 次）");
-                    SafeDelay(delayMs, ctx.Cancellation);
+                    UiEventBus.PublishLog($"[Retry] {deviceName}.{command} 失败：{exceptionDetail}，{delayMs}ms 后重试（第 {attempt} 次，共 {attempts} 次）");
+                    SafeDelay(delayMs, baseContext.Cancellation);
                 }
             }
 
-            return new Dictionary<string, object>(); // 理论到不了
+            return new Dictionary<string, object>();
         }
 
-        private static Dictionary<string, object> MergeOutputs(
+        public static void FireAndForgetExtra(FlowData data, ExtraDeviceSpec spec, RetrySpec fallback, string traceId)
+        {
+            var retry = spec.Retry ?? fallback ?? new RetrySpec { Attempts = 1, DelayMs = 0 };
+            var token = data != null ? data.Cancellation : CancellationToken.None;
+            Task.Run(() =>
+            {
+                try
+                {
+                    ExecuteDeviceCommand(data, spec.Device, spec.Command, spec.Parameters, spec.TimeoutMs, retry, traceId, useLock: true);
+                }
+                catch (Exception ex)
+                {
+                    UiEventBus.PublishLog($"[Extra-Forget] {spec.Device}.{spec.Command} 执行异常：{ex.Message}");
+                }
+            }, token);
+        }
+
+        public static Dictionary<string, object> MergeOutputs(
             AggregationMode mode,
             Dictionary<string, object> main,
             Dictionary<string, Dictionary<string, object>> extras)
@@ -456,27 +691,20 @@ namespace ZL.WorkflowLib.Workflow
                 return root;
             }
 
-            // flat：展平，增加前缀
             foreach (var kv in extras)
             {
                 var prefix = kv.Key;
                 var dict = kv.Value ?? new Dictionary<string, object>();
                 foreach (var kv2 in dict)
                 {
-                    var key = $"{prefix}.{kv2.Key}";
-                    root[key] = kv2.Value;
+                    root[$"{prefix}.{kv2.Key}"] = kv2.Value;
                 }
             }
+
             return root;
         }
 
-        private static Dictionary<string, object> TryRun(Func<Dictionary<string, object>> f, out bool ok, out Exception err)
-        {
-            try { var r = f(); ok = true; err = null; return r; }
-            catch (Exception ex) { ok = false; err = ex; return new Dictionary<string, object>(); }
-        }
-
-        private static string BuildMessage(bool finalSuccess, Exception mainError, bool extrasSucceeded, ExecSpec spec)
+        public static string BuildMessage(bool finalSuccess, Exception mainError, bool extrasSucceeded, DeviceExecSpec spec)
         {
             if (!finalSuccess)
             {
@@ -488,277 +716,89 @@ namespace ZL.WorkflowLib.Workflow
             return "ok";
         }
 
-        private static void SafeDelay(int ms, CancellationToken token)
+        public static void SafeDelay(int ms, CancellationToken token)
         {
-            if (ms <= 0) return;
-            try { Task.Delay(ms, token).Wait(token); } catch { }
-        }
-
-        // ========= 配置解析 & 支撑类型 =========
-
-        private class ExecSpec
-        {
-            public ExecMode Mode;
-            public AggregationMode Aggregation;
-            public bool ContinueOnExtraFailure;
-            public int PreDelayMs;
-            public int PostDelayMs;
-            public RetrySpec MainRetry;
-            public List<ExtraDeviceSpec> Extras;
-
-            public static ExecSpec ParseFrom(IDictionary<string, object> parameters)
+            if (ms <= 0)
+                return;
+            try
             {
-                var spec = new ExecSpec
-                {
-                    Mode = ExecMode.Parallel,
-                    Aggregation = AggregationMode.Namespace,
-                    ContinueOnExtraFailure = true,
-                    PreDelayMs = 0,
-                    PostDelayMs = 0,
-                    MainRetry = new RetrySpec { Attempts = 1, DelayMs = 0 },
-                    Extras = new List<ExtraDeviceSpec>()
-                };
-
-                if (parameters == null) return spec;
-
-                object raw;
-                if (!parameters.TryGetValue("__exec", out raw) || raw == null)
-                    return spec;
-
-                var jo = ToJObject(raw);
-                if (jo == null) return spec;
-
-                spec.Mode = ParseEnum<ExecMode>(jo.Value<string>("mode"), ExecMode.Parallel);
-                spec.Aggregation = ParseEnum<AggregationMode>(jo.Value<string>("aggregation"), AggregationMode.Namespace);
-                spec.ContinueOnExtraFailure = jo.Value<bool?>("continueOnExtraFailure") ?? true;
-                spec.PreDelayMs = jo.Value<int?>("preDelayMs") ?? 0;
-                spec.PostDelayMs = jo.Value<int?>("postDelayMs") ?? 0;
-
-                var mainRetry = jo["mainRetry"] as JObject;
-                if (mainRetry != null)
-                {
-                    spec.MainRetry = new RetrySpec
-                    {
-                        Attempts = (int?)mainRetry["attempts"] ?? 1,
-                        DelayMs = (int?)mainRetry["delayMs"] ?? 0
-                    };
-                }
-
-                var arr = jo["extras"] as JArray;
-                if (arr != null)
-                {
-                    int extraIndex = 0;
-                    foreach (var item in arr)
-                    {
-                        // 记录当前 extras 的下标，便于日志输出后自增计数
-                        int currentIndex = extraIndex++;
-                        var e = item as JObject;
-                        if (e == null)
-                        {
-                            // 保障数组中的节点可被解析，若遇到非 JObject 则直接跳过
-                            continue;
-                        }
-                        var ex = new ExtraDeviceSpec
-                        {
-                            Device = e.Value<string>("device"),
-                            Command = e.Value<string>("command"),
-                            Alias = e.Value<string>("alias"),
-                            TimeoutMs = e.Value<int?>("timeoutMs") ?? 0,
-                            Start = ParseEnum<ExtraStart>(e.Value<string>("start"), ExtraStart.WithMain),
-                            Join = ParseEnum<ExtraJoin>(e.Value<string>("join"), ExtraJoin.Wait),
-                            Parameters = ToDictionary(e["parameters"])
-                        };
-                        var r = e["retry"] as JObject;
-                        if (r != null)
-                        {
-                            ex.Retry = new RetrySpec
-                            {
-                                Attempts = (int?)r["attempts"] ?? 1,
-                                DelayMs = (int?)r["delayMs"] ?? 0
-                            };
-                        }
-                        if (string.IsNullOrWhiteSpace(ex.Device) || string.IsNullOrWhiteSpace(ex.Command))
-                        {
-                            // 当附属设备配置缺少必填字段时，记录警告并跳过，避免后续执行阶段出现空引用
-                            var warnMsg = $"[BuildPlan] extras[{currentIndex}] 缺少 device 或 command，已忽略该节点";
-                            LogHelper.Warn(warnMsg);
-                            UiEventBus.PublishLog(warnMsg);
-                            continue;
-                        }
-                        spec.Extras.Add(ex);
-                    }
-                }
-
-                return spec;
+                Task.Delay(ms, token).Wait(token);
             }
-
-            private static JObject ToJObject(object o)
+            catch
             {
-                if (o == null) return null;
-                if (o is JObject) return (JObject)o;
-                if (o is string)
-                {
-                    try { return JObject.Parse((string)o); } catch { return null; }
-                }
-                try
-                {
-                    var json = JsonConvert.SerializeObject(o);
-                    return JObject.Parse(json);
-                }
-                catch { return null; }
-            }
-
-            private static T ParseEnum<T>(string s, T def) where T : struct
-            {
-                if (string.IsNullOrEmpty(s)) return def;
-                try
-                {
-                    T v;
-                    if (Enum.TryParse<T>(s, true, out v)) return v;
-                }
-                catch { }
-                return def;
-            }
-
-            private static Dictionary<string, object> ToDictionary(JToken token)
-            {
-                if (token == null) return new Dictionary<string, object>();
-                try
-                {
-                    return JsonConvert.DeserializeObject<Dictionary<string, object>>(token.ToString())
-                           ?? new Dictionary<string, object>();
-                }
-                catch
-                {
-                    return new Dictionary<string, object>();
-                }
             }
         }
 
-        private class ExtraDeviceSpec
+        private static StepContext CreateBaseContext(FlowData data)
         {
-            public string Device;
-            public string Command;
-            public string Alias;
-            public int TimeoutMs;
-            public RetrySpec Retry;
-            public ExtraStart Start;
-            public ExtraJoin Join;
-            public Dictionary<string, object> Parameters;
-        }
+            var model = data != null && !string.IsNullOrWhiteSpace(data.Model)
+                ? data.Model
+                : DeviceServices.Config != null ? DeviceServices.Config.Model : string.Empty;
+            var token = data != null ? data.Cancellation : CancellationToken.None;
 
-        private class RetrySpec
-        {
-            public int Attempts;
-            public int DelayMs;
-        }
+            if (DeviceServices.Context != null)
+                return DeviceServices.Context.CloneWithCancellation(token);
 
-        private enum ExecMode { MainFirst, ExtrasFirst, Parallel }
-        private enum AggregationMode { Namespace, Flat }
-        private enum ExtraStart { Before, WithMain, After }
-        private enum ExtraJoin { Wait, Forget }
+            return new StepContext(model, token);
+        }
     }
 
     /// <summary>
-    /// 设备级互斥锁，防止多个并发步骤争用同一物理设备（串口、CAN通道等）
+    /// 设备级互斥锁注册表，负责为不同设备提供独立的信号量。
     /// </summary>
     internal static class DeviceLockRegistry
     {
-        private static readonly ConcurrentDictionary<string, SemaphoreSlim> _locks =
+        private static readonly ConcurrentDictionary<string, SemaphoreSlim> Locks =
             new ConcurrentDictionary<string, SemaphoreSlim>(StringComparer.OrdinalIgnoreCase);
 
-        public static T WithLock<T>(string device, Func<T> fn)
+        public static IDisposable Acquire(string device)
         {
-            var sem = _locks.GetOrAdd(device, _ => new SemaphoreSlim(1, 1));
+            if (string.IsNullOrWhiteSpace(device))
+                return new NoopLock();
+
+            var sem = Locks.GetOrAdd(device, _ => new SemaphoreSlim(1, 1));
             sem.Wait();
-            try { return fn(); }
-            finally { try { sem.Release(); } catch { } }
+            return new Releaser(sem);
         }
-    }
-    public class UnifiedExecStep : StepBody
-    {
-        public override ExecutionResult Run(IStepExecutionContext context)
-        {
-            var data = (FlowData)context.Workflow.Data;
-            if (data.Done || string.IsNullOrEmpty(data.Current))
-                return ExecutionResult.Next();
-            var stepCfg = DeviceServices.Config.TestSteps.Find(x => x.Name == data.Current);
-            if (stepCfg == null)
-            {
-                data.LastSuccess = false;
-                UiEventBus.PublishLog($"[UnifiedExec] 未找到步骤配置: {data.Current}");
-                return ExecutionResult.Next();
-            }
-            try
-            {
-                if (stepCfg.Type == "SubFlow")
-                    new SubFlowExecutor().RunSubFlow(stepCfg, data, stepCfg);
-                else if (stepCfg.Type == "SubFlowRef")
-                {
-                    if (string.IsNullOrEmpty(stepCfg.Ref))
-                    {
-                        data.LastSuccess = false;
-                        UiEventBus.PublishLog($"[UnifiedExec] 步骤 {stepCfg.Name} 缺少 Ref 字段");
-                    }
-                    else
-                    {
-                        StepConfig subDef;
-                        if (WorkflowServices.Subflows != null && WorkflowServices.Subflows.TryGet(stepCfg.Ref, out subDef))
-                        {
-                            UiEventBus.PublishLog($"[UnifiedExec] 执行子流程引用 {stepCfg.Ref} (from {stepCfg.Name})");
-                            new SubFlowExecutor().RunSubFlow(subDef, data, stepCfg);
-                        }
-                        else
-                        {
-                            data.LastSuccess = false;
-                            UiEventBus.PublishLog($"[UnifiedExec] 未找到子流程引用: {stepCfg.Ref} (from {stepCfg.Name})");
-                        }
-                    }
-                }
-                else
-                {
-                    new DeviceExecStep().Run(context);
-                }
-            }
-            catch (Exception ex)
-            {
-                // 统一执行节点的异常同样输出堆栈，方便跟踪具体来源
-                var exceptionDetail = ex.ToString();
-                data.LastSuccess = false;
-                UiEventBus.PublishLog(
-                    $"[UnifiedExec] 执行步骤 {stepCfg.Name} 异常: {exceptionDetail} | SessionId={data.SessionId} | 模型={data.Model} | SN={data.Sn} | 当前步骤={data.Current}");
-            }
-            return ExecutionResult.Next();
-        }
-    }
 
-    public class RouteStep : StepBody
-    {
-        public override ExecutionResult Run(IStepExecutionContext context)
+        public static T RunWithLock<T>(string device, Func<T> action)
         {
-            var data = (FlowData)context.Workflow.Data;
-            if (data.Done || string.IsNullOrEmpty(data.Current))
-                return ExecutionResult.Next();
-            var stepCfg = DeviceServices.Config.TestSteps.Find(x => x.Name == data.Current);
-            if (stepCfg == null)
+            using (Acquire(device))
             {
-                data.Done = true; UiEventBus.PublishLog("[Route] 找不到当前步骤配置，强制结束");
-                return ExecutionResult.Next();
+                return action();
+            }
+        }
+
+        public static T WithLock<T>(string device, Func<T> action)
+        {
+            return RunWithLock(device, action);
+        }
+
+        private sealed class Releaser : IDisposable
+        {
+            private readonly SemaphoreSlim _sem;
+            private bool _disposed;
+
+            public Releaser(SemaphoreSlim sem)
+            {
+                _sem = sem;
             }
 
-            string next = data.LastSuccess ? stepCfg.OnSuccess : stepCfg.OnFailure;
-            UiEventBus.PublishLog($"[Route] {stepCfg.Name} -> {(string.IsNullOrEmpty(next) ? "(结束)" : next)} | LastSuccess={data.LastSuccess}");
-            if (string.IsNullOrEmpty(next))
-                data.Done = true;
-            else
-                data.Current = next;
-            if (data.Done)
+            public void Dispose()
             {
-                // 将最终的成功/失败状态写入数据库，避免流程失败却被标记为成功
-                DeviceServices.Db.FinishTestSession(data.SessionId, data.LastSuccess ? 1 : 0);
-                UiEventBus.PublishCompleted(data.SessionId.ToString(), data.Model);
+                if (_disposed)
+                    return;
+                _disposed = true;
+                try { _sem.Release(); }
+                catch { }
             }
-            return ExecutionResult.Next();
+        }
+
+        private sealed class NoopLock : IDisposable
+        {
+            public void Dispose()
+            {
+            }
         }
     }
 }
