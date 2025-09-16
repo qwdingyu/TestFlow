@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ZL.DeviceLib;
 using ZL.DeviceLib.Storage;
+using ZL.DeviceLib.Models;
 using ZL.WorkflowLib;
 using ZL.DeviceLib.Devices;
 using ZL.WorkflowLib.Engine;
@@ -15,18 +16,13 @@ using ZL.WorkflowLib.Workflow;
 namespace Cli
 {
     internal class DeviceConfig { public string Type { get; set; } = ""; public string ConnectionString { get; set; } = ""; public Dictionary<string, object> Settings { get; set; } = new(); }
-    internal class StepConfig
+    internal class FlowConfig
     {
-        public string Name { get; set; } = ""; public string Description { get; set; } = "";
-        public string Device { get; set; } = ""; public string Target { get; set; } = ""; public string Command { get; set; } = "";
-        public Dictionary<string, object> Parameters { get; set; } = new();
-        public Dictionary<string, object> ExpectedResults { get; set; } = new();
-        public int TimeoutMs { get; set; }
-        public List<string> DependsOn { get; set; } = new();
-        public string OnSuccess { get; set; } = ""; public string OnFailure { get; set; } = "";
-        public string Type { get; set; } = "Normal"; public List<StepConfig> Steps { get; set; } = new(); public string Ref { get; set; } = "";
+        public string Model { get; set; } = "";
+        // 这里直接引用设备库中的 StepConfig，保证流程定义与核心库保持一致
+        public List<StepConfig> TestSteps { get; set; } = new();
+        public Dictionary<string, DeviceConfig> Devices { get; set; } = new();
     }
-    internal class FlowConfig { public string Model { get; set; } = ""; public List<StepConfig> TestSteps { get; set; } = new(); public Dictionary<string, DeviceConfig> Devices { get; set; } = new(); }
 
     internal static class Program
     {
