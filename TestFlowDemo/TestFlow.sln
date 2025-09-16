@@ -14,6 +14,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PluginsSrc", "PluginsSrc", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MyDriver", "..\PluginsSrc\MyDriver\MyDriver.csproj", "{3DC3B733-88C9-4AB0-A14F-AAE36012D08D}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestFlowDemo.Tests", "..\TestFlowDemo.Tests\TestFlowDemo.Tests.csproj", "{C69B85DF-3893-4EA7-9CBB-1DD791288880}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{F4570127-5488-49D6-AD1E-78E8FBD5D854}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlowCli", "..\Tools\FlowCli\FlowCli.csproj", "{EF5C99DD-987F-43AE-A199-F41B1B07AB86}"
@@ -38,9 +40,13 @@ Global
 		{98F90897-685A-4CFB-A8DF-BDA209B37981}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3DC3B733-88C9-4AB0-A14F-AAE36012D08D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3DC3B733-88C9-4AB0-A14F-AAE36012D08D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3DC3B733-88C9-4AB0-A14F-AAE36012D08D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3DC3B733-88C9-4AB0-A14F-AAE36012D08D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EF5C99DD-987F-43AE-A199-F41B1B07AB86}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+                {3DC3B733-88C9-4AB0-A14F-AAE36012D08D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+                {3DC3B733-88C9-4AB0-A14F-AAE36012D08D}.Release|Any CPU.Build.0 = Release|Any CPU
+                {C69B85DF-3893-4EA7-9CBB-1DD791288880}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+                {C69B85DF-3893-4EA7-9CBB-1DD791288880}.Debug|Any CPU.Build.0 = Debug|Any CPU
+                {C69B85DF-3893-4EA7-9CBB-1DD791288880}.Release|Any CPU.ActiveCfg = Release|Any CPU
+                {C69B85DF-3893-4EA7-9CBB-1DD791288880}.Release|Any CPU.Build.0 = Release|Any CPU
+                {EF5C99DD-987F-43AE-A199-F41B1B07AB86}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EF5C99DD-987F-43AE-A199-F41B1B07AB86}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EF5C99DD-987F-43AE-A199-F41B1B07AB86}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EF5C99DD-987F-43AE-A199-F41B1B07AB86}.Release|Any CPU.Build.0 = Release|Any CPU
