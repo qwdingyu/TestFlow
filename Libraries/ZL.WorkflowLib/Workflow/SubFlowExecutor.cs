@@ -148,6 +148,7 @@ namespace ZL.WorkflowLib.Workflow
                 }
 
                 var taskResult = ExecuteTask(task, ctx);
+                ExpectedResultEvaluator.ApplyToTaskResult(task.Step, taskResult, task.Id);
                 result.TaskResults[task.Id] = taskResult;
 
                 if (!taskResult.Success)
@@ -237,6 +238,11 @@ namespace ZL.WorkflowLib.Workflow
     /// </summary>
     public class SubFlowExecutor
     {
+        /// <summary>
+        /// 子流程节点默认的超时时间（毫秒）。当配置未显式提供 TimeoutMs 时使用该值兜底。
+        /// </summary>
+        private const int DefaultStepTimeoutMs = 30000;
+
         private readonly IOrchestrator _orchestrator;
 
         /// <summary>
@@ -370,6 +376,10 @@ namespace ZL.WorkflowLib.Workflow
                 var execSub = StepUtils.BuildExecutableStep(sub, data);
                 var originalKey = CombinePrefix(prefix, execSub.Name);
                 var uniqueId = EnsureUniqueId(originalKey, usedIds, plan.Tasks.Count);
+                var contextName = !string.IsNullOrEmpty(originalKey) ? originalKey : uniqueId;
+
+                ApplyDefaultTimeoutIfNeeded(execSub, contextName);
+                var resourceId = ResolveResourceId(execSub, contextName);
 
                 if (!string.IsNullOrEmpty(originalKey))
                     nameMap[originalKey] = uniqueId;
@@ -380,7 +390,7 @@ namespace ZL.WorkflowLib.Workflow
                 {
                     Id = uniqueId,
                     Step = execSub,
-                    ResourceId = ResolveResourceId(execSub), // 资源互斥标识：避免多个任务争用同一物理设备
+                    ResourceId = resourceId, // 资源互斥标识：避免多个任务争用同一物理设备
                     RawDependsOn = NormalizeDepends(sub.DependsOn, prefix) // 暂存原始依赖名，待 ResolveDependencies 转换
                 });
             }
@@ -500,18 +510,75 @@ namespace ZL.WorkflowLib.Workflow
         }
 
         /// <summary>
-        /// 解析资源锁键，优先使用参数中的 __resourceId / resourceId，其次退化为设备名。
+        /// 解析资源锁键，优先使用参数中的 __resourceId / resourceId，其次退化为设备名，并在使用默认值时输出日志。
         /// </summary>
         /// <param name="step">目标步骤配置。</param>
-        private static string ResolveResourceId(StepConfig step)
+        /// <param name="contextName">用于日志的上下文名称（通常为层级化的步骤名）。</param>
+        private static string ResolveResourceId(StepConfig step, string contextName)
         {
-            if (step?.Parameters != null)
+            if (step == null)
+                return null;
+
+            bool hasExplicit = false;
+            string candidate = null;
+            if (step.Parameters != null)
             {
                 object value;
                 if (step.Parameters.TryGetValue("__resourceId", out value) || step.Parameters.TryGetValue("resourceId", out value))
-                    return value != null ? value.ToString() : null;
+                {
+                    hasExplicit = true;
+                    candidate = value != null ? value.ToString() : null;
+                    if (!string.IsNullOrWhiteSpace(candidate))
+                        return candidate.Trim();
+                }
             }
-            return step?.Device;
+
+            if (hasExplicit && string.IsNullOrWhiteSpace(candidate))
+            {
+                PublishPlanLog(
+                    $"[BuildPlan] 步骤 {contextName} 提供的 ResourceId 为空字符串，建议补充有效值以避免资源争用", warn: true);
+            }
+            if (!string.IsNullOrWhiteSpace(step.Device))
+            {
+                // 当未提供 resourceId 或配置为空字符串时，默认使用设备名并记录提示日志，方便排查配置遗漏。
+                PublishPlanLog(
+                    $"[BuildPlan] 步骤 {contextName} 未显式配置 ResourceId，默认使用设备名 {step.Device}",
+                    warn: false);
+                return step.Device;
+            }
+
+            PublishPlanLog(
+                $"[BuildPlan] 步骤 {contextName} 缺少 ResourceId 且无法从设备推断，将退化为使用设备锁", warn: true);
+            return null;
+        }
+
+        /// <summary>
+        /// 若步骤未提供 TimeoutMs，则填充默认值并输出提示日志，避免任务长时间无界等待。
+        /// </summary>
+        private static void ApplyDefaultTimeoutIfNeeded(StepConfig step, string contextName)
+        {
+            if (step == null)
+                return;
+
+            if (step.TimeoutMs > 0)
+                return;
+
+            step.TimeoutMs = DefaultStepTimeoutMs;
+            PublishPlanLog(
+                $"[BuildPlan] 步骤 {contextName} 未设置 TimeoutMs，已使用默认值 {DefaultStepTimeoutMs}ms",
+                warn: false);
+        }
+
+        /// <summary>
+        /// 统一封装计划构建阶段的日志输出，确保同时写入底层日志与 UI 日志。
+        /// </summary>
+        private static void PublishPlanLog(string message, bool warn)
+        {
+            if (warn)
+                LogHelper.Warn(message);
+            else
+                LogHelper.Info(message);
+            UiEventBus.PublishLog(message);
         }
 
         /// <summary>

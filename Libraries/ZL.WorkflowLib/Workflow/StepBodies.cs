@@ -258,7 +258,7 @@ namespace ZL.WorkflowLib.Workflow
                     pooledResult.Message = BuildMessage(finalSuccess, mainError, extrasSucceeded, execSpec);
 
                     // 期望值评估（沿用原有逻辑）
-                    EvaluateExpectedResults(execStep, pooledResult);
+                    ExpectedResultEvaluator.ApplyToStepResult(execStep, pooledResult, logSuccess: false, logFailure: false);
 
                     // 写库（沿用原逻辑）
                     DeviceServices.Db.AppendStep(
@@ -353,7 +353,7 @@ namespace ZL.WorkflowLib.Workflow
                 }
 
                 // 统一走期望值校验逻辑，保持与主流程一致的判断结果。
-                EvaluateExpectedResults(step, pooledResult);
+                ExpectedResultEvaluator.ApplyToStepResult(step, pooledResult, logSuccess: false, logFailure: false);
 
                 taskResult.Success = pooledResult.Success;
                 taskResult.Message = pooledResult.Message;
@@ -373,37 +373,6 @@ namespace ZL.WorkflowLib.Workflow
             }
 
             return taskResult;
-        }
-
-        /// <summary>
-        /// 参考旧版 DeviceExecStepLegacy：在编排器执行完成后，对 pooledResult 做一次期望值校验。
-        /// 这里单独封装，便于在调用 _orchestrator.Execute 后统一复用，保证逻辑和历史版本一致。
-        /// </summary>
-        /// <param name="execStep">执行时实际使用的步骤配置，包含期望值定义。</param>
-        /// <param name="pooledResult">对象池复用的步骤执行结果。</param>
-        private static void EvaluateExpectedResults(StepConfig execStep, StepResult pooledResult)
-        {
-            if (execStep == null || pooledResult == null)
-            {
-                // 理论上不会为空，这里做保护，避免因为未来调用栈调整导致空引用。
-                return;
-            }
-
-            // 与旧实现一致：调用 ResultEvaluator 进行期望值匹配，并在失败时覆盖成功标记与消息。
-            string mismatchReason;
-            bool passExpected = ResultEvaluator.Evaluate(
-                execStep.ExpectedResults,
-                pooledResult.Outputs,
-                execStep.Parameters,
-                out mismatchReason);
-
-            if (!passExpected)
-            {
-                pooledResult.Success = false;
-                pooledResult.Message = (pooledResult.Message ?? string.Empty)
-                                       + " | expected mismatch: "
-                                       + mismatchReason;
-            }
         }
 
         // ===== 执行主/附属一次（带重试 + 设备锁 + 超时）=====
