@@ -82,10 +82,12 @@ namespace ZL.WorkflowLib.Workflow
             }
             catch (Exception ex)
             {
+                // 捕获完整异常信息，保证日志与数据库都能保留堆栈信息
+                var exceptionDetail = ex.ToString();
                 data.LastSuccess = false;
                 DeviceServices.Db.AppendStep(data.SessionId, data.Model, data.Sn, stepCfg.Name, stepCfg.Description, stepCfg.Device, stepCfg.Command,
-                    JsonConvert.SerializeObject(stepCfg.Parameters), JsonConvert.SerializeObject(stepCfg.ExpectedResults), null, 0, "Exception: " + ex.Message, started, DateTime.Now);
-                UiEventBus.PublishLog($"[Step-Exception] {stepCfg.Name} | 错误={ex.Message}");
+                    JsonConvert.SerializeObject(stepCfg.Parameters), JsonConvert.SerializeObject(stepCfg.ExpectedResults), null, 0, "Exception: " + exceptionDetail, started, DateTime.Now);
+                UiEventBus.PublishLog($"[Step-Exception] {stepCfg.Name} | SessionId={data.SessionId} | 模型={data.Model} | SN={data.Sn} | 错误详情={exceptionDetail}");
             }
             finally
             {
@@ -146,10 +148,12 @@ namespace ZL.WorkflowLib.Workflow
                 }
                 catch (Exception ex)
                 {
+                    // 记录堆栈，帮助快速分析子流程问题
+                    var exceptionDetail = ex.ToString();
                     data.LastSuccess = false;
                     DeviceServices.Db.AppendStep(data.SessionId, data.Model, data.Sn, sub.Name, sub.Description, sub.Device, sub.Command,
-                        JsonConvert.SerializeObject(sub.Parameters), JsonConvert.SerializeObject(sub.ExpectedResults), null, 0, "Exception: " + ex.Message, started, DateTime.Now);
-                    UiEventBus.PublishLog($"[SubStep-Exception] {sub.Name} | 错误={ex.Message}");
+                        JsonConvert.SerializeObject(sub.Parameters), JsonConvert.SerializeObject(sub.ExpectedResults), null, 0, "Exception: " + exceptionDetail, started, DateTime.Now);
+                    UiEventBus.PublishLog($"[SubStep-Exception] {sub.Name} | 父步骤={stepCfg.Name} | SessionId={data.SessionId} | 模型={data.Model} | SN={data.Sn} | 错误详情={exceptionDetail}");
                     break;
                 }
                 finally { StepResultPool.Instance.Return(pooledResult); }
@@ -205,8 +209,10 @@ namespace ZL.WorkflowLib.Workflow
             }
             catch (Exception ex)
             {
+                // 统一执行异常同样输出详细堆栈信息
+                var exceptionDetail = ex.ToString();
                 data.LastSuccess = false;
-                UiEventBus.PublishLog($"[UnifiedExec] 执行步骤 {stepCfg.Name} 异常: {ex.Message}");
+                UiEventBus.PublishLog($"[UnifiedExec] 执行步骤 {stepCfg.Name} 异常: {exceptionDetail} | SessionId={data.SessionId} | 模型={data.Model} | SN={data.Sn} | 当前步骤={data.Current}");
             }
             return ExecutionResult.Next();
         }
