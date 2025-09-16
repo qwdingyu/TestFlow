@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Cli.Commands;
 using ZL.DeviceLib;
 using ZL.DeviceLib.Storage;
 using ZL.DeviceLib.Models;
@@ -44,6 +45,9 @@ namespace Cli
                 {
                     case "list":
                         exitCode = ListFlows();
+                        break;
+                    case "build-flow":
+                        exitCode = BuildFlowCommand.Run(args);
                         break;
                     case "validate-all":
                         exitCode = ValidateAll();
