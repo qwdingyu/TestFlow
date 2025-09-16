@@ -76,11 +76,13 @@ namespace ZL.DeviceLib.Storage
                 {
                     using (var cmd = conn.CreateCommand())
                     {
+                        // 兜底建表逻辑需要与 Entities.sql 保持字段一致，避免旧库缺少 sn/model 字段导致插入报错
                         cmd.CommandText = @"
 CREATE TABLE IF NOT EXISTS test_steps (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id INTEGER,
-    product_model TEXT,
+    sn TEXT,
+    model TEXT,
     step_name TEXT,
     description TEXT,
     device_name TEXT,
@@ -98,7 +100,8 @@ CREATE TABLE IF NOT EXISTS test_steps (
                         cmd.CommandText = @"
 CREATE TABLE IF NOT EXISTS test_results (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    product_model TEXT,
+    sn TEXT,
+    model TEXT,
     started_at TEXT,
     ended_at TEXT,
     final_status INTEGER,
