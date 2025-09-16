@@ -51,13 +51,13 @@ namespace TestFlowDemo
             this.AcceptButton = btnStart;  // 回车=开始（可选）
             UpdateButtonStates();
 
-            initDbAndParams();
+            InitDbAndParams();
             // 初始化配置与 Host
             InitConfig();       // 明确初始化 ConfigManager（加载 Devices.json）
             InitWorkflowHost(); // 启动 WorkflowCore Host（常驻）
             UpdateButtonStates();
         }
-        void initDbAndParams()
+        void InitDbAndParams()
         {
             string dbPath = "test_demo.db";
             string reportDir = "Reports";
