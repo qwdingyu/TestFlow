@@ -15,13 +15,18 @@ using ZL.WorkflowLib.Workflow;
 
 namespace Cli
 {
-    internal class DeviceConfig { public string Type { get; set; } = ""; public string ConnectionString { get; set; } = ""; public Dictionary<string, object> Settings { get; set; } = new(); }
+    internal class DeviceConfig
+    {
+        public string Type { get; set; } = "";
+        public string ConnectionString { get; set; } = "";
+        public Dictionary<string, object> Settings { get; set; } = new Dictionary<string, object>();
+    }
     internal class FlowConfig
     {
         public string Model { get; set; } = "";
         // 这里直接引用设备库中的 StepConfig，保证流程定义与核心库保持一致
-        public List<StepConfig> TestSteps { get; set; } = new();
-        public Dictionary<string, DeviceConfig> Devices { get; set; } = new();
+        public List<StepConfig> TestSteps { get; set; } = new List<StepConfig>();
+        public Dictionary<string, DeviceConfig> Devices { get; set; } = new Dictionary<string, DeviceConfig>();
     }
 
     internal static class Program
@@ -110,7 +115,7 @@ namespace Cli
                             int timeout = 90;
                             for (int i = 2; i < args.Length - 1; i++)
                             {
-                                if (args[i] == "--timeout" && int.TryParse(args[i + 1], out var t)) { timeout = t; i++; }
+                                if (args[i] == "--timeout" && int.TryParse(args[i + 1], out int parsedTimeout)) { timeout = parsedTimeout; i++; }
                             }
                             exitCode = RunFlow(args[1], timeout);
                         }
@@ -180,7 +185,7 @@ namespace Cli
         // 说明：为跨平台保留最小实现；依赖 WorkflowLib 在多目标下的 net7.0 或 net6.0 实现。
         private static int RunFlow(string barcode, int timeoutSeconds = 90)
         {
-            if (!TryParseModel(barcode, out var model, out var err))
+            if (!TryParseModel(barcode, out string model, out string err))
             {
                 Console.Error.WriteLine("条码解析失败: " + err);
                 return 2;
@@ -266,7 +271,7 @@ namespace Cli
                 if (!File.Exists(path)) return (null, null, null);
                 var root = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(path));
                 var infra = root["Infrastructure"] as Newtonsoft.Json.Linq.JObject; if (infra == null) return (null, null, null);
-                if (infra.TryGetValue("database", StringComparison.OrdinalIgnoreCase, out var dbTok) && dbTok is Newtonsoft.Json.Linq.JObject db)
+                if (infra.TryGetValue("database", StringComparison.OrdinalIgnoreCase, out Newtonsoft.Json.Linq.JToken dbTok) && dbTok is Newtonsoft.Json.Linq.JObject db)
                 {
                     var type = db.Value<string>("Type");
                     var conn = db.Value<string>("ConnectionString");
@@ -531,7 +536,7 @@ namespace {ns}
                     // 额外提示：检查 database provider 语义
                     var obj = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(infraPath));
                     var infra = obj["Infrastructure"] as Newtonsoft.Json.Linq.JObject;
-                    if (infra != null && infra.TryGetValue("database", StringComparison.OrdinalIgnoreCase, out var dbTok) && dbTok is Newtonsoft.Json.Linq.JObject db)
+                    if (infra != null && infra.TryGetValue("database", StringComparison.OrdinalIgnoreCase, out Newtonsoft.Json.Linq.JToken dbTok) && dbTok is Newtonsoft.Json.Linq.JObject db)
                     {
                         var type = db.Value<string>("Type");
                         if (string.IsNullOrWhiteSpace(type)) LogHelper.Info("[WARN] infrastructure.database.Type 缺失，默认按 sqlite 处理");
