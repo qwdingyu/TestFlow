@@ -8,6 +8,11 @@
         private System.Windows.Forms.Button btnStop;
         private System.Windows.Forms.TextBox txtLog;
         private System.Windows.Forms.Label lblStatus;
+        private System.Windows.Forms.TextBox txtPlanModel;
+        private System.Windows.Forms.TextBox txtSelectedTests;
+        private System.Windows.Forms.Button btnGeneratePlan;
+        private System.Windows.Forms.Label labelPlanModel;
+        private System.Windows.Forms.Label labelSelectedTests;
 
         protected override void Dispose(bool disposing)
         {
@@ -22,6 +27,11 @@
             this.btnStop = new System.Windows.Forms.Button();
             this.txtLog = new System.Windows.Forms.TextBox();
             this.lblStatus = new System.Windows.Forms.Label();
+            this.txtPlanModel = new System.Windows.Forms.TextBox();
+            this.txtSelectedTests = new System.Windows.Forms.TextBox();
+            this.btnGeneratePlan = new System.Windows.Forms.Button();
+            this.labelPlanModel = new System.Windows.Forms.Label();
+            this.labelSelectedTests = new System.Windows.Forms.Label();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.btnClearLog = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
@@ -93,7 +103,55 @@
             this.lblStatus.Size = new System.Drawing.Size(416, 53);
             this.lblStatus.TabIndex = 4;
             this.lblStatus.Text = "状态: 空闲";
-            // 
+            //
+            // txtPlanModel
+            //
+            this.txtPlanModel.Font = new System.Drawing.Font("微软雅黑", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.txtPlanModel.Location = new System.Drawing.Point(106, 52);
+            this.txtPlanModel.Name = "txtPlanModel";
+            this.txtPlanModel.Size = new System.Drawing.Size(219, 25);
+            this.txtPlanModel.TabIndex = 6;
+            //
+            // txtSelectedTests
+            //
+            this.txtSelectedTests.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.txtSelectedTests.Location = new System.Drawing.Point(106, 83);
+            this.txtSelectedTests.Multiline = true;
+            this.txtSelectedTests.Name = "txtSelectedTests";
+            this.txtSelectedTests.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.txtSelectedTests.Size = new System.Drawing.Size(339, 48);
+            this.txtSelectedTests.TabIndex = 7;
+            //
+            // btnGeneratePlan
+            //
+            this.btnGeneratePlan.Font = new System.Drawing.Font("微软雅黑", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.btnGeneratePlan.Location = new System.Drawing.Point(480, 52);
+            this.btnGeneratePlan.Name = "btnGeneratePlan";
+            this.btnGeneratePlan.Size = new System.Drawing.Size(105, 31);
+            this.btnGeneratePlan.TabIndex = 8;
+            this.btnGeneratePlan.Text = "生成计划";
+            this.btnGeneratePlan.Click += new System.EventHandler(this.btnGeneratePlan_Click);
+            //
+            // labelPlanModel
+            //
+            this.labelPlanModel.AutoSize = true;
+            this.labelPlanModel.Font = new System.Drawing.Font("微软雅黑", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.labelPlanModel.Location = new System.Drawing.Point(14, 55);
+            this.labelPlanModel.Name = "labelPlanModel";
+            this.labelPlanModel.Size = new System.Drawing.Size(90, 19);
+            this.labelPlanModel.TabIndex = 9;
+            this.labelPlanModel.Text = "模板型号：";
+            //
+            // labelSelectedTests
+            //
+            this.labelSelectedTests.AutoSize = true;
+            this.labelSelectedTests.Font = new System.Drawing.Font("微软雅黑", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.labelSelectedTests.Location = new System.Drawing.Point(14, 84);
+            this.labelSelectedTests.Name = "labelSelectedTests";
+            this.labelSelectedTests.Size = new System.Drawing.Size(90, 19);
+            this.labelSelectedTests.TabIndex = 10;
+            this.labelSelectedTests.Text = "测试模板：";
+            //
             // splitContainer1
             // 
             this.splitContainer1.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -106,6 +164,11 @@
             // 
             this.splitContainer1.Panel1.Controls.Add(this.btnRefreshParams);
             this.splitContainer1.Panel1.Controls.Add(this.btnClearLog);
+            this.splitContainer1.Panel1.Controls.Add(this.labelSelectedTests);
+            this.splitContainer1.Panel1.Controls.Add(this.txtSelectedTests);
+            this.splitContainer1.Panel1.Controls.Add(this.labelPlanModel);
+            this.splitContainer1.Panel1.Controls.Add(this.txtPlanModel);
+            this.splitContainer1.Panel1.Controls.Add(this.btnGeneratePlan);
             this.splitContainer1.Panel1.Controls.Add(this.label1);
             this.splitContainer1.Panel1.Controls.Add(this.txtBarcode);
             this.splitContainer1.Panel1.Controls.Add(this.btnStop);
@@ -115,7 +178,7 @@
             // 
             this.splitContainer1.Panel2.Controls.Add(this.splitContainer2);
             this.splitContainer1.Size = new System.Drawing.Size(897, 530);
-            this.splitContainer1.SplitterDistance = 51;
+            this.splitContainer1.SplitterDistance = 150;
             this.splitContainer1.TabIndex = 5;
             // 
             // btnClearLog

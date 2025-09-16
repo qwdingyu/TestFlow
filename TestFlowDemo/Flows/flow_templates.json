@@ -1,0 +1,63 @@
+{
+  "prefix": [
+    {
+      "Name": "power_on",
+      "Description": "上电",
+      "Device": "power_supply_1",
+      "Command": "set_voltage",
+      "Parameters": { "voltage": 12.0 },
+      "ExpectedResults": { "mode": "equals", "key": "status", "value": "ok" },
+      "TimeoutMs": 2000
+    }
+  ],
+  "suffix": [
+    {
+      "Name": "power_off",
+      "Description": "下电",
+      "Device": "power_supply_1",
+      "Command": "set_voltage",
+      "Parameters": { "voltage": 0.0 },
+      "ExpectedResults": { "mode": "equals", "key": "status", "value": "ok" },
+      "TimeoutMs": 2000
+    },
+    {
+      "Name": "generate_report",
+      "Description": "生成报告",
+      "Device": "report_generator",
+      "Command": "generate",
+      "Parameters": { "format": "html" },
+      "ExpectedResults": {},
+      "TimeoutMs": 2000
+    },
+    {
+      "Name": "end_test",
+      "Description": "测试结束",
+      "Device": "system",
+      "Command": "shutdown",
+      "Parameters": {},
+      "ExpectedResults": {},
+      "TimeoutMs": 1000
+    }
+  ],
+  "failureStepName": "power_off",
+  "templates": {
+    "ecu_can_check": {
+      "Name": "ecu_can_check_ref",
+      "Type": "SubFlowRef",
+      "Ref": "ecu_can_check",
+      "Description": "CAN 报文测试"
+    },
+    "ecu_iv_check": {
+      "Name": "ecu_iv_check_ref",
+      "Type": "SubFlowRef",
+      "Ref": "ecu_iv_check",
+      "Description": "电流/电压检测"
+    },
+    "ecu_power_on_check": {
+      "Name": "ecu_power_on_check_ref",
+      "Type": "SubFlowRef",
+      "Ref": "ecu_power_on_check",
+      "Description": "上电自检"
+    }
+  }
+}

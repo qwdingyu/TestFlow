@@ -47,13 +47,16 @@
 		<None Update="Flows\Subflows\ecu_iv_check.json">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="Flows\Subflows\ecu_power_on_check.json">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-		<None Update="Flows\XYZ_999.json">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-	</ItemGroup>
+                <None Update="Flows\Subflows\ecu_power_on_check.json">
+                  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+                </None>
+                <None Update="Flows\XYZ_999.json">
+                        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+                </None>
+                <None Update="Flows\flow_templates.json">
+                        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+                </None>
+        </ItemGroup>
 	<ItemGroup>
 	  <Folder Include="docs\" />
 	</ItemGroup>

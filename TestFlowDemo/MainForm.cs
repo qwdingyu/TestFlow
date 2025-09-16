@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.IO;
 using System.Windows.Forms;
 using WorkflowCore.Interface;
@@ -26,6 +28,7 @@ namespace TestFlowDemo
         private bool _configReady;        // Devices.json 是否加载成功（影响是否允许启动）
         private Timer _poolTimer;
         private PoolMonitor _poolMonitor;
+        private TemplateManager _templateManager; // 模板管理器（根据勾选生成流程计划）
         public MainForm()
         {
             InitializeComponent();
@@ -39,6 +42,10 @@ namespace TestFlowDemo
             // 订阅 UI 事件总线（来自 StepBodies 内部发布）
             UiEventBus.Log += OnUiLog;
             UiEventBus.WorkflowCompleted += OnUiWorkflowCompleted;
+
+            // 初始化模板管理器，后续用于动态生成流程计划
+            _templateManager = new TemplateManager();
+
 
         }
 
@@ -321,6 +328,66 @@ namespace TestFlowDemo
         {
             WorkflowServices.ParamInjector.PreloadAll();
             UiEventBus.PublishLog("[Param] 参数缓存已刷新（全量 status=1）");
+        }
+
+        /// <summary>
+        /// 模板计划生成按钮事件：读取 UI 输入，调用模板管理器生成流程并保存，同时弹窗展示 JSON。
+        /// </summary>
+        private void btnGeneratePlan_Click(object sender, EventArgs e)
+        {
+            string model = (txtPlanModel.Text ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(model))
+            {
+                MessageBox.Show("请输入要生成流程的产品型号。", "输入缺失", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string rawTests = txtSelectedTests.Text ?? string.Empty;
+            var selected = rawTests
+                .Split(new[] { ',', ';', '\r', '\n', '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (selected.Count == 0)
+            {
+                MessageBox.Show("请至少填写一个测试模板标识，可使用换行、逗号或分号分隔。", "输入缺失", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                AddLog($"[Template] 开始生成流程：型号={model}，模板列表={string.Join(", ", selected)}");
+                var flow = _templateManager.GenerateFlow(model, selected);
+                var json = _templateManager.ToJson(flow);
+                var savedPath = _templateManager.SaveGeneratedFlow(flow);
+
+                AddLog($"[Template] 已生成型号 {model} 的流程计划，步骤数={flow.TestSteps.Count}，保存路径={savedPath}");
+                MessageBox.Show(json, "生成的流程 JSON", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (FileNotFoundException ex)
+            {
+                AddLog("[Template] 模板文件缺失：" + ex.Message);
+                MessageBox.Show("流程模板文件不存在，请检查 flow_templates.json 是否已准备好。\n" + ex.Message,
+                                "模板缺失", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                AddLog("[Template] 模板选择错误：" + ex.Message);
+                MessageBox.Show(ex.Message, "模板不存在", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            catch (ArgumentException ex)
+            {
+                AddLog("[Template] 输入校验失败：" + ex.Message);
+                MessageBox.Show(ex.Message, "输入无效", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            catch (Exception ex)
+            {
+                AddLog("[Template] 生成流程时发生异常：" + ex.Message);
+                MessageBox.Show("生成流程时出现异常，请查看日志了解详情。\n" + ex.Message,
+                                "生成失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void UpdatePoolStatus()
