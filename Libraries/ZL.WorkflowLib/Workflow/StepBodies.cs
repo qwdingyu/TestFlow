@@ -468,10 +468,17 @@ namespace ZL.WorkflowLib.Workflow
                 var arr = jo["extras"] as JArray;
                 if (arr != null)
                 {
+                    int extraIndex = 0;
                     foreach (var item in arr)
                     {
+                        // 记录当前 extras 的下标，便于日志输出后自增计数
+                        int currentIndex = extraIndex++;
                         var e = item as JObject;
-                        if (e == null) continue;
+                        if (e == null)
+                        {
+                            // 保障数组中的节点可被解析，若遇到非 JObject 则直接跳过
+                            continue;
+                        }
                         var ex = new ExtraDeviceSpec
                         {
                             Device = e.Value<string>("device"),
@@ -491,8 +498,15 @@ namespace ZL.WorkflowLib.Workflow
                                 DelayMs = (int?)r["delayMs"] ?? 0
                             };
                         }
-                        if (!string.IsNullOrEmpty(ex.Device) && !string.IsNullOrEmpty(ex.Command))
-                            spec.Extras.Add(ex);
+                        if (string.IsNullOrWhiteSpace(ex.Device) || string.IsNullOrWhiteSpace(ex.Command))
+                        {
+                            // 当附属设备配置缺少必填字段时，记录警告并跳过，避免后续执行阶段出现空引用
+                            var warnMsg = $"[BuildPlan] extras[{currentIndex}] 缺少 device 或 command，已忽略该节点";
+                            LogHelper.Warn(warnMsg);
+                            UiEventBus.PublishLog(warnMsg);
+                            continue;
+                        }
+                        spec.Extras.Add(ex);
                     }
                 }
 
