@@ -120,8 +120,7 @@ namespace ZL.WorkflowLib.Workflow
                 UiEventBus.PublishLog($"[DeviceExec] 未找到步骤配置: {data.Current}");
                 return ExecutionResult.Next();
             }
-
-            UiEventBus.PublishLog($"--[Flow] 开始 {stepCfg.Name}, 设备, 描述, 下一步");
+            UiEventBus.PublishLog($"--[Flow] 开始 {stepCfg.Name}, 设备【{stepCfg.Device}】, 描述【{stepCfg.Description}】, 下一步【{stepCfg.OnSuccess}】");
             var started = DateTime.Now;
 
             var pooledResult = StepResultPool.Instance.Get();  // 和原来一致：复用对象池承载输出
