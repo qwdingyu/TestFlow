@@ -296,6 +296,86 @@ namespace ZL.WorkflowLib.Workflow
         }
 
         /// <summary>
+        /// 提供给子流程编排器复用的执行入口：
+        /// 在不依赖 WorkflowCore 上下文的前提下，完成单个设备步骤的实际执行、超时控制与期望值校验。
+        /// </summary>
+        /// <param name="step">已经过参数展开后的步骤配置。</param>
+        /// <param name="sharedCtx">子流程共享的步骤上下文，用于复用模型信息与取消令牌。</param>
+        /// <returns>封装执行状态、输出以及时间戳的结果对象。</returns>
+        internal static OrchTaskResult ExecuteSingleStep(StepConfig step, StepContext sharedCtx)
+        {
+            var now = DateTime.Now;
+            if (step == null)
+            {
+                // 兜底返回：避免外部调用方因配置缺失而出现空引用异常。
+                return new OrchTaskResult
+                {
+                    Success = false,
+                    Message = "步骤配置为空",
+                    Outputs = new Dictionary<string, object>(),
+                    StartedAt = now,
+                    FinishedAt = now
+                };
+            }
+
+            var taskResult = new OrchTaskResult
+            {
+                StartedAt = now,
+                Outputs = new Dictionary<string, object>()
+            };
+
+            var pooledResult = StepResultPool.Instance.Get();
+
+            try
+            {
+                // 统一处理步骤级超时：与共享上下文中的取消令牌进行合并，保障超时后能及时退出。
+                var baseToken = sharedCtx != null ? sharedCtx.Cancellation : CancellationToken.None;
+                using (var linked = CancellationTokenSource.CreateLinkedTokenSource(baseToken))
+                {
+                    if (step.TimeoutMs > 0)
+                        linked.CancelAfter(step.TimeoutMs);
+
+                    // 沿用全局上下文信息（模型、Bag 等），仅替换取消令牌。
+                    var model = sharedCtx != null ? sharedCtx.Model : DeviceServices.Config != null ? DeviceServices.Config.Model : string.Empty;
+                    var stepCtx = sharedCtx != null
+                        ? sharedCtx.CloneWithCancellation(linked.Token)
+                        : new StepContext(model, linked.Token);
+
+                    DeviceConfig devConf;
+                    if (!DeviceServices.Config.Devices.TryGetValue(step.Device, out devConf))
+                        throw new Exception("Device not found: " + step.Device);
+
+                    var execResult = DeviceServices.Factory.UseDevice(step.Device, devConf, dev => dev.Execute(step, stepCtx));
+
+                    pooledResult.Success = execResult.Success;
+                    pooledResult.Message = execResult.Message;
+                    pooledResult.Outputs = execResult.Outputs ?? new Dictionary<string, object>();
+                }
+
+                // 统一走期望值校验逻辑，保持与主流程一致的判断结果。
+                EvaluateExpectedResults(step, pooledResult);
+
+                taskResult.Success = pooledResult.Success;
+                taskResult.Message = pooledResult.Message;
+                taskResult.Outputs = new Dictionary<string, object>(pooledResult.Outputs ?? new Dictionary<string, object>());
+            }
+            catch (Exception ex)
+            {
+                taskResult.Success = false;
+                taskResult.Message = ex.Message;
+                taskResult.Outputs = new Dictionary<string, object>();
+                UiEventBus.PublishLog($"[SubStep-Exception] {step.Name} | 错误={ex.Message}");
+            }
+            finally
+            {
+                taskResult.FinishedAt = DateTime.Now;
+                StepResultPool.Instance.Return(pooledResult);
+            }
+
+            return taskResult;
+        }
+
+        /// <summary>
         /// 参考旧版 DeviceExecStepLegacy：在编排器执行完成后，对 pooledResult 做一次期望值校验。
         /// 这里单独封装，便于在调用 _orchestrator.Execute 后统一复用，保证逻辑和历史版本一致。
         /// </summary>
