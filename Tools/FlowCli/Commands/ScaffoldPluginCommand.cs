@@ -43,7 +43,7 @@ namespace Cli.Commands
                 string regPath = Path.Combine(srcDir, pluginName + "Registrar.cs");
                 string typeName = pluginName;
                 // 使用插值字符串生成设备示例源码，确保模板结构清晰易读。
-                string devSrc = @$"using System;
+                string devSrc = $@"using System;
 using System.Collections.Generic;
 using ZL.DeviceLib.Devices;
 using ZL.DeviceLib.Devices.Plugin;
@@ -79,7 +79,7 @@ namespace {ns}
                 File.WriteAllText(devPath, devSrc);
 
                 // 同样使用插值字符串生成注册器模板代码，避免后续维护风险。
-                string regSrc = @$"using ZL.DeviceLib.Devices;
+                string regSrc = $@"using ZL.DeviceLib.Devices;
 using ZL.DeviceLib.Devices.Plugin;
 
 namespace {ns}

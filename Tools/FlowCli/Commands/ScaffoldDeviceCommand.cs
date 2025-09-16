@@ -25,7 +25,7 @@ namespace Cli.Commands
                 string devPath = Path.Combine(outDir, typeName + "Device.cs");
                 string regPath = Path.Combine(outDir, typeName + "Registrar.cs");
                 // 使用插值字符串生成设备模板源码，避免繁琐拼接导致的转义遗漏。
-                string devSrc = @$"using System;
+                string devSrc = $@"using System;
 using System.Collections.Generic;
 using ZL.DeviceLib.Devices;
 using ZL.DeviceLib.Devices.Plugin;
@@ -59,7 +59,7 @@ namespace {ns}
 }}
 ";
                 // 使用插值字符串生成注册器模板源码，保证格式一致性。
-                string regSrc = @$"using ZL.DeviceLib.Devices;
+                string regSrc = $@"using ZL.DeviceLib.Devices;
 using ZL.DeviceLib.Devices.Plugin;
 
 namespace {ns}
