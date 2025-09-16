@@ -39,9 +39,14 @@ namespace Cli.Commands
             string reportDir = "Reports";
 
             InfrastructureRegistry registry = new InfrastructureRegistry();
-            registry.RegisterDatabase("sqlite", delegate(InfrastructureOptions opts)
+            // 注册默认的 sqlite 数据库工厂，参数使用 DbOptions
+            registry.RegisterDatabase("sqlite", delegate(DbOptions opts)
             {
-                return new DatabaseService(DbPathUtil.ResolveSqlitePath(opts != null ? opts.ConnectionString : null, opts != null ? (opts.DefaultDbPath ?? dbPath) : dbPath, CommandHelper.FindRepoRoot()));
+                // 解析 sqlite 路径，若未提供连接串则使用默认路径
+                return new DatabaseService(DbPathUtil.ResolveSqlitePath(
+                    opts != null ? opts.ConnectionString : null,
+                    opts != null ? (opts.DefaultDbPath ?? dbPath) : dbPath,
+                    CommandHelper.FindRepoRoot()));
             });
 
             try
@@ -65,13 +70,14 @@ namespace Cli.Commands
             }
 
             IDatabaseService db = registry.CreateDatabase(providerType, dbOptions);
-            AppServices.Db = db;
-            AppServices.Factory = new DeviceFactory(dbPath, reportDir);
-            AppServices.ParamInjector = new ParamInjector(db, 300, "L1", "ST01");
-            AppServices.ParamInjector.PreloadAll();
-            AppServices.Subflows = new SubflowRegistry();
-            AppServices.Subflows.LoadFromDirectory(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Flows", "Subflows"));
-            AppServices.Factory.LoadPlugins(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins"));
+            // 将数据库与设备工厂注册到全局服务
+            DeviceServices.Db = db;
+            DeviceServices.Factory = new DeviceFactory(dbPath, reportDir);
+            WorkflowServices.ParamInjector = new ParamInjector(db, 300, "L1", "ST01");
+            WorkflowServices.ParamInjector.PreloadAll();
+            WorkflowServices.Subflows = new SubflowRegistry();
+            WorkflowServices.Subflows.LoadFromDirectory(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Flows", "Subflows"));
+            DeviceServices.Factory.LoadPlugins(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins"));
 
             UiEventBus.Log += delegate(string msg) { LogHelper.Info(DateTime.Now.ToString("u") + " " + msg); };
             UiEventBus.WorkflowCompleted += delegate(string sid, string m) { LogHelper.Info("[Completed] SessionId=" + sid + ", Model=" + m); };
