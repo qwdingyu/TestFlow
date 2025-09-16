@@ -83,16 +83,24 @@ namespace TestFlowDemo
             DeviceServices.Factory = _factory;
 
             // 加载外部插件（可选）：将自定义设备驱动 DLL 放置于 程序目录/Plugins 下即可自动注册
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            var pluginDir = Path.Combine(baseDir, "Plugins");
             try
             {
-                var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                var pluginDir = Path.Combine(baseDir, "Plugins");
                 DeviceServices.Factory.LoadPlugins(pluginDir);
                 AddLog("[Init] 插件目录加载完成: " + pluginDir);
             }
             catch (Exception ex)
             {
-                AddLog("[Init] 插件加载异常：" + ex.Message);
+                // 记录完整异常信息（包含堆栈），便于后续排查具体失败原因
+                var errorDetail = $"[Init] 插件加载异常：{ex}";
+                AddLog(errorDetail);
+                // 通过弹窗即时通知用户插件加载失败及其原因，并指出插件路径位置
+                MessageBox.Show(
+                    $"插件目录加载失败，原因：{ex.Message}{Environment.NewLine}插件路径：{pluginDir}{Environment.NewLine}请检查插件文件是否完整或依赖是否齐全。",
+                    "插件加载失败",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
             }
 
             // 初始化参数注入器（缓存 + TTL 300s）
