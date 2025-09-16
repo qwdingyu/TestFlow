@@ -234,7 +234,8 @@ namespace ZL.WorkflowLib.Workflow
                 data.Current = next;
             if (data.Done)
             {
-                DeviceServices.Db.FinishTestSession(data.SessionId);
+                // 老版本流程同样需要根据最终结果写回状态，保持数据一致性
+                DeviceServices.Db.FinishTestSession(data.SessionId, data.LastSuccess ? 1 : 0);
                 UiEventBus.PublishCompleted(data.SessionId.ToString(), data.Model);
             }
             return ExecutionResult.Next();

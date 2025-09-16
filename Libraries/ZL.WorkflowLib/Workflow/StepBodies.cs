@@ -721,7 +721,8 @@ namespace ZL.WorkflowLib.Workflow
                 data.Current = next;
             if (data.Done)
             {
-                DeviceServices.Db.FinishTestSession(data.SessionId);
+                // 将最终的成功/失败状态写入数据库，避免流程失败却被标记为成功
+                DeviceServices.Db.FinishTestSession(data.SessionId, data.LastSuccess ? 1 : 0);
                 UiEventBus.PublishCompleted(data.SessionId.ToString(), data.Model);
             }
             return ExecutionResult.Next();
