@@ -582,69 +582,6 @@ namespace ZL.WorkflowLib.Workflow
             finally { try { sem.Release(); } catch { } }
         }
     }
-    public class SubFlowExecutor
-    {
-        public void RunSubFlow(StepConfig stepCfg, FlowData data, StepConfig parentStepCfg)
-        {
-            UiEventBus.PublishLog($"[SubFlow] 开始 {stepCfg.Name}, 子步骤共有【{stepCfg.Steps.Count}】步");
-            foreach (var sub in stepCfg.Steps)
-            {
-                UiEventBus.PublishLog($"---[SubFlow] 开始 {sub.Name}, 设备【{sub.Device}】, 描述【{sub.Description}】");
-                var started = DateTime.Now;
-                var pooledResult = StepResultPool.Instance.Get();
-                try
-                {
-                    var execSub = StepUtils.BuildExecutableStep(sub, data);
-                    DeviceConfig devConf; if (!DeviceServices.Config.Devices.TryGetValue(execSub.Device, out devConf)) throw new Exception("Device not found: " + execSub.Device);
-
-                    var baseToken = DeviceServices.Context != null ? DeviceServices.Context.Cancellation : System.Threading.CancellationToken.None;
-                    using (var linked = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(baseToken))
-                    {
-                        if (execSub.TimeoutMs > 0) linked.CancelAfter(execSub.TimeoutMs);
-                        var stepCtx = DeviceServices.Context != null ? DeviceServices.Context.CloneWithCancellation(linked.Token)
-                                                                 : new ZL.DeviceLib.Engine.StepContext(data.Model, linked.Token);
-
-                        var outputs = DeviceServices.Factory.UseDevice(execSub.Device, devConf, dev =>
-                        {
-                            var result = dev.Execute(execSub, stepCtx);
-                            pooledResult.Success = result.Success;
-                            pooledResult.Message = result.Message;
-                            pooledResult.Outputs = result.Outputs ?? new Dictionary<string, object>();
-                            return pooledResult.Outputs;
-                        });
-                    }
-                    string reason;
-                    bool passExpected = ResultEvaluator.Evaluate(execSub.ExpectedResults, pooledResult.Outputs, execSub.Parameters, out reason);
-                    if (!passExpected)
-                    {
-                        pooledResult.Success = false;
-                        pooledResult.Message = (pooledResult.Message ?? "") + " | expected mismatch: " + reason;
-                    }
-                    DeviceServices.Db.AppendStep(data.SessionId, data.Model, data.Sn, execSub.Name, execSub.Description, execSub.Device, execSub.Command,
-                        JsonConvert.SerializeObject(execSub.Parameters), JsonConvert.SerializeObject(execSub.ExpectedResults), JsonConvert.SerializeObject(pooledResult.Outputs),
-                        pooledResult.Success ? 1 : 0, pooledResult.Message, started, DateTime.Now);
-                    data.LastSuccess = pooledResult.Success;
-                    UiEventBus.PublishLog($"[SubStep] {execSub.Name} | Success={pooledResult.Success} | Msg={pooledResult.Message}");
-                    if (!pooledResult.Success)
-                    {
-                        UiEventBus.PublishLog($"[SubFlow] 子步骤 {execSub.Name} 失败，中断子流程");
-                        break;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    data.LastSuccess = false;
-                    DeviceServices.Db.AppendStep(data.SessionId, data.Model, data.Sn, sub.Name, sub.Description, sub.Device, sub.Command,
-                        JsonConvert.SerializeObject(sub.Parameters), JsonConvert.SerializeObject(sub.ExpectedResults), null, 0, "Exception: " + ex.Message, started, DateTime.Now);
-                    UiEventBus.PublishLog($"[SubStep-Exception] {sub.Name} | 错误={ex.Message}");
-                    break;
-                }
-                finally { StepResultPool.Instance.Return(pooledResult); }
-            }
-            UiEventBus.PublishLog($"[SubFlow] 结束 {stepCfg.Name}, Success={data.LastSuccess}, 下一步【{parentStepCfg.OnSuccess}】");
-        }
-    }
-
     public class UnifiedExecStep : StepBody
     {
         public override ExecutionResult Run(IStepExecutionContext context)
