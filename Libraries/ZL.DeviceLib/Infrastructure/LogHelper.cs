@@ -12,8 +12,8 @@ using System.Text;
         LogHelper.Init(
             logFilePath: "logs/app-.log",
             minimumLevel: Serilog.Events.LogEventLevel.Debug,
-            udpHost: "192.168.1.200",
-            udpPort: 514 // 例如 syslog/自定义平台端口
+            udpHost: "192.168.1.200", // UDP 日志聚合服务器地址
+            udpPort: 514 // UDP 日志端口示例：需与收集端监听端口保持一致，可按现场调整
         );
 
         LogHelper.Info("系统启动完成");
@@ -27,12 +27,19 @@ namespace ZL.DeviceLib
         private static bool _isInitialized = false;
         private static readonly object _lock = new object();
 
-        // UDP配置
+        // UDP配置：当同时指定 udpHost/udpPort 时，会额外通过 UDP 将日志推送到集中平台
         private static bool _udpEnabled = false;
         private static string _udpHost;
-        private static int _udpPort;
+        private static int _udpPort; // UDP 日志发送端口，必须与日志聚合器监听端口一致
         private static UdpClient _udpClient;
 
+        /// <summary>
+        /// 初始化日志系统并可选启用 UDP 转发能力。
+        /// </summary>
+        /// <param name="logFilePath">本地滚动日志文件的输出路径模板。</param>
+        /// <param name="minimumLevel">写入日志的最低级别。</param>
+        /// <param name="udpHost">UDP 日志收集器地址，传 null 或空字符串表示关闭。</param>
+        /// <param name="udpPort">UDP 日志端口，需与收集器监听端口一致；传 0 可完全禁用 UDP。</param>
         public static void Init(
             string logFilePath = "logs/log-.txt",
             LogEventLevel minimumLevel = LogEventLevel.Information,
@@ -57,6 +64,7 @@ namespace ZL.DeviceLib
 
                 if (!string.IsNullOrWhiteSpace(udpHost) && udpPort > 0)
                 {
+                    // 配置 UDP 转发：常用于对接如 ELK、syslog 等集中日志平台
                     _udpEnabled = true;
                     _udpHost = udpHost;
                     _udpPort = udpPort;

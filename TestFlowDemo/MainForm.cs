@@ -92,10 +92,10 @@ namespace TestFlowDemo
             }
             catch (Exception ex)
             {
-                // 记录完整异常信息（包含堆栈），便于后续排查具体失败原因
+                // 使用 ex.ToString() 输出完整异常文本（包含堆栈信息），确保日志能保留插件加载失败时的上下文细节
                 var errorDetail = $"[Init] 插件加载异常：{ex}";
                 AddLog(errorDetail);
-                // 通过弹窗即时通知用户插件加载失败及其原因，并指出插件路径位置
+                // 通过弹窗即时提醒用户插件加载失败，并提示检查插件目录与依赖，避免静默出错
                 MessageBox.Show(
                     $"插件目录加载失败，原因：{ex.Message}{Environment.NewLine}插件路径：{pluginDir}{Environment.NewLine}请检查插件文件是否完整或依赖是否齐全。",
                     "插件加载失败",
