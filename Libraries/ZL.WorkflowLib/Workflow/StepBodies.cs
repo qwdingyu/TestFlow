@@ -275,14 +275,17 @@ namespace ZL.WorkflowLib.Workflow
             }
             catch (Exception ex)
             {
-                data.LastSuccess = false;
-                DeviceServices.Db.AppendStep(
-                    data.SessionId, data.Model, data.Sn,
-                    stepCfg.Name, stepCfg.Description, stepCfg.Device, stepCfg.Command,
-                    JsonConvert.SerializeObject(stepCfg.Parameters),
-                    JsonConvert.SerializeObject(stepCfg.ExpectedResults),
-                    null, 0, "Exception: " + ex.Message, started, DateTime.Now);
-                UiEventBus.PublishLog($"[Step-Exception] {stepCfg.Name} | 错误={ex.Message}");
+                // 使用完整异常字符串确保日志中包含堆栈信息，便于后续排查
+                                var exceptionDetail = ex.ToString();
+                                data.LastSuccess = false;
+                                DeviceServices.Db.AppendStep(
+                                    data.SessionId, data.Model, data.Sn,
+                                    stepCfg.Name, stepCfg.Description, stepCfg.Device, stepCfg.Command,
+                                    JsonConvert.SerializeObject(stepCfg.Parameters),
+                                    JsonConvert.SerializeObject(stepCfg.ExpectedResults),
+                                    null, 0, "Exception: " + exceptionDetail, started, DateTime.Now);
+                                UiEventBus.PublishLog(
+                                    $"[Step-Exception] {stepCfg.Name} | SessionId={data.SessionId} | 模型={data.Model} | SN={data.Sn} | 错误详情={exceptionDetail}");
             }
             finally
             {
@@ -377,7 +380,10 @@ namespace ZL.WorkflowLib.Workflow
                 catch (Exception ex)
                 {
                     if (attempt >= attempts) throw;
-                    UiEventBus.PublishLog($"[Retry] {deviceName}.{command} 失败：{ex.Message}，{delayMs}ms 后重试");
+                    // 缓存完整异常文本，确保重试日志记录下详细的异常原因
+                    var exceptionDetail = ex.ToString();
+                    UiEventBus.PublishLog(
+                        $"[Retry] {deviceName}.{command} 失败：{exceptionDetail}，{delayMs}ms 后重试（第 {attempt} 次，共 {attempts} 次）");
                     SafeDelay(delayMs, ctx.Cancellation);
                 }
             }
@@ -668,8 +674,11 @@ namespace ZL.WorkflowLib.Workflow
             }
             catch (Exception ex)
             {
+                // 统一执行节点的异常同样输出堆栈，方便跟踪具体来源
+                var exceptionDetail = ex.ToString();
                 data.LastSuccess = false;
-                UiEventBus.PublishLog($"[UnifiedExec] 执行步骤 {stepCfg.Name} 异常: {ex.Message}");
+                UiEventBus.PublishLog(
+                    $"[UnifiedExec] 执行步骤 {stepCfg.Name} 异常: {exceptionDetail} | SessionId={data.SessionId} | 模型={data.Model} | SN={data.Sn} | 当前步骤={data.Current}");
             }
             return ExecutionResult.Next();
         }
@@ -697,7 +706,8 @@ namespace ZL.WorkflowLib.Workflow
                 data.Current = next;
             if (data.Done)
             {
-                DeviceServices.Db.FinishTestSession(data.SessionId);
+                // 将最终的成功/失败状态写入数据库，避免流程失败却被标记为成功
+                DeviceServices.Db.FinishTestSession(data.SessionId, data.LastSuccess ? 1 : 0);
                 UiEventBus.PublishCompleted(data.SessionId.ToString(), data.Model);
             }
             return ExecutionResult.Next();

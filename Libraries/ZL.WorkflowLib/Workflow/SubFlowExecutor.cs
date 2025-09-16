@@ -337,6 +337,8 @@ namespace ZL.WorkflowLib.Workflow
             }
             catch (Exception ex)
             {
+                // 记录详细异常，方便定位子流程执行失败的具体原因
+                var exceptionDetail = ex.ToString();
                 data.LastSuccess = false;
                 UiEventBus.PublishLog($"[SubFlow] 执行 {stepCfg.Name} 异常: {ex.Message}");
             }
@@ -355,7 +357,7 @@ namespace ZL.WorkflowLib.Workflow
             var nameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var usedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            AppendSubSteps(stepCfg, data, plan, prefix: null, nameMap, usedIds);
+            AppendSubSteps(stepCfg, data, plan, null, nameMap, usedIds);
             ResolveDependencies(plan, nameMap);
             return plan;
         }
@@ -363,12 +365,7 @@ namespace ZL.WorkflowLib.Workflow
         /// <summary>
         /// 递归展开子步骤，遇到嵌套子流程时继续下钻。
         /// </summary>
-        private static void AppendSubSteps(StepConfig container,
-                                           FlowData data,
-                                           OrchestrationPlan plan,
-                                           string prefix,
-                                           Dictionary<string, string> nameMap,
-                                           HashSet<string> usedIds)
+        private static void AppendSubSteps(StepConfig container, FlowData data, OrchestrationPlan plan, string prefix, Dictionary<string, string> nameMap, HashSet<string> usedIds)
         {
             if (container?.Steps == null)
                 return;
@@ -563,4 +560,3 @@ namespace ZL.WorkflowLib.Workflow
         }
     }
 }
-

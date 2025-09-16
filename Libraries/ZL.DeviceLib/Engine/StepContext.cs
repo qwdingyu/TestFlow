@@ -29,7 +29,7 @@ namespace ZL.DeviceLib.Engine
         public T Get<T>(string key)
         {
             if (!Bag.TryGetValue(key, out var value) || value == null)
-                return default;
+                return default(T);
 
             if (value is T matched)
                 return matched;
@@ -40,9 +40,10 @@ namespace ZL.DeviceLib.Engine
             }
             catch
             {
-                return default;
+                return default(T);
             }
         }
+
 
         /// <summary>
         /// 读取原始对象，兼容旧有调用；内部委托给泛型版本以减少重复逻辑。

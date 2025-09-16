@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace ZL.WorkflowLib.Engine
@@ -64,6 +65,8 @@ namespace ZL.WorkflowLib.Engine
         /// </summary>
         public RetrySpec Retry { get; set; }
 
+        /// <summary>是否为 Fire-And-Forget 任务：失败不会阻塞后续流程。</summary>
+        public bool FireAndForget { get; set; }
         /// <summary>
         ///     窗口化执行配置，可选控制重复次数与间隔。
         /// </summary>
@@ -103,23 +106,57 @@ namespace ZL.WorkflowLib.Engine
     }
 
     /// <summary>
-    ///     编排执行结果封装，统一返回是否成功及各任务输出。
+    /// <para>编排整体的执行结果。</para>
     /// </summary>
     public sealed class OrchestrationResult
     {
-        /// <summary>
-        ///     标记编排是否整体成功，便于快速判断执行状态。
-        /// </summary>
+        /// <summary>整体是否成功（所有非 Fire-And-Forget 任务成功完成）。</summary>
         public bool Success { get; set; }
 
-        /// <summary>
-        ///     每个任务的输出结果，键为任务 Id，值为对应的输出字典。
-        /// </summary>
-        public Dictionary<string, Dictionary<string, object>> Outputs { get; set; }
+        /// <summary>总结性消息。</summary>
+        public string Message { get; set; }
+
+        /// <summary>任务级输出，键为任务 Id。</summary>
+        public Dictionary<string, OrchTaskResult> TaskResults { get; set; } =
+            new Dictionary<string, OrchTaskResult>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// <para>单个任务的执行结果。</para>
+    /// </summary>
+    public sealed class OrchTaskResult
+    {
+        /// <summary>任务 Id。</summary>
+        public string TaskId { get; set; }
+
+        /// <summary>是否成功。</summary>
+        public bool Success { get; set; }
+
+        /// <summary>是否因依赖或取消而被跳过。</summary>
+        public bool Skipped { get; set; }
+
+        /// <summary>是否因取消而终止。</summary>
+        public bool Canceled { get; set; }
+
+        /// <summary>执行尝试次数。</summary>
+        public int Attempts { get; set; }
+
+        /// <summary>描述性的消息。</summary>
+        public string Message { get; set; }
+
+        /// <summary>设备返回的输出。</summary>
+        public Dictionary<string, object> Outputs { get; set; } = new Dictionary<string, object>();
+
+        /// <summary>UTC 开始时间。</summary>
+        public DateTime StartedAtUtc { get; set; }
+
+        /// <summary>UTC 结束时间。</summary>
+        public DateTime CompletedAtUtc { get; set; }
 
         /// <summary>
-        ///     汇总的提示信息或错误描述，用于展示给操作者或写入日志。
+        /// <para>执行耗时。</para>
         /// </summary>
-        public string Message { get; set; }
+        public TimeSpan Duration =>
+            CompletedAtUtc > StartedAtUtc ? CompletedAtUtc - StartedAtUtc : TimeSpan.Zero;
     }
 }
