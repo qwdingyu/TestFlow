@@ -691,8 +691,11 @@ namespace ZL.WorkflowLib.Workflow
             }
             try
             {
+                var subExecutor = new SubFlowExecutor();
                 if (stepCfg.Type == "SubFlow")
-                    new SubFlowExecutor().RunSubFlow(stepCfg, data, stepCfg);
+                {
+                    subExecutor.RunInlineSubFlow(stepCfg, data, stepCfg);
+                }
                 else if (stepCfg.Type == "SubFlowRef")
                 {
                     if (string.IsNullOrEmpty(stepCfg.Ref))
@@ -702,16 +705,11 @@ namespace ZL.WorkflowLib.Workflow
                     }
                     else
                     {
-                        StepConfig subDef;
-                        if (WorkflowServices.Subflows != null && WorkflowServices.Subflows.TryGet(stepCfg.Ref, out subDef))
-                        {
-                            UiEventBus.PublishLog($"[UnifiedExec] 执行子流程引用 {stepCfg.Ref} (from {stepCfg.Name})");
-                            new SubFlowExecutor().RunSubFlow(subDef, data, stepCfg);
-                        }
-                        else
+                        UiEventBus.PublishLog($"[UnifiedExec] 执行子流程引用 {stepCfg.Ref} (from {stepCfg.Name})");
+                        if (!subExecutor.RunRegisteredSubFlow(stepCfg.Ref, data, stepCfg))
                         {
                             data.LastSuccess = false;
-                            UiEventBus.PublishLog($"[UnifiedExec] 未找到子流程引用: {stepCfg.Ref} (from {stepCfg.Name})");
+                            UiEventBus.PublishLog($"[UnifiedExec] 子流程引用 {stepCfg.Ref} 执行失败或不存在");
                         }
                     }
                 }

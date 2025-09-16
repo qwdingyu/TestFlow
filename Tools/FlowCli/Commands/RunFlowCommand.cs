@@ -11,6 +11,7 @@ using ZL.DeviceLib.Storage;
 using ZL.WorkflowLib;
 using ZL.WorkflowLib.Engine;
 using ZL.WorkflowLib.Workflow;
+using ZL.WorkflowLib.Workflow.Flows;
 
 namespace Cli.Commands
 {
@@ -76,7 +77,7 @@ namespace Cli.Commands
             WorkflowServices.ParamInjector = new ParamInjector(db, 300, "L1", "ST01");
             WorkflowServices.ParamInjector.PreloadAll();
             WorkflowServices.Subflows = new SubflowRegistry();
-            WorkflowServices.Subflows.LoadFromDirectory(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Flows", "Subflows"));
+            SubflowDefinitionCatalog.Initialize(WorkflowServices.Subflows);
             DeviceServices.Factory.LoadPlugins(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins"));
 
             UiEventBus.Log += delegate(string msg) { LogHelper.Info(DateTime.Now.ToString("u") + " " + msg); };
@@ -90,7 +91,9 @@ namespace Cli.Commands
             services.AddWorkflow();
             IServiceProvider provider = services.BuildServiceProvider();
             WorkflowCore.Interface.IWorkflowHost host = provider.GetService<WorkflowCore.Interface.IWorkflowHost>();
+            WorkflowServices.WorkflowHost = host;
             host.RegisterWorkflow<DynamicLoopWorkflow, FlowData>();
+            SubflowDefinitionCatalog.RegisterWorkflows(host, WorkflowServices.Subflows);
             host.Start();
 
             try
