@@ -174,6 +174,15 @@ namespace TestFlowDemo
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            try
+            {
+                if (_poolTimer != null)
+                {
+                    _poolTimer.Stop();        // 先停止定时器，避免窗体关闭后仍然触发 Tick 事件
+                    _poolTimer.Dispose();     // 释放定时器底层的 Win32 句柄，防止资源泄漏
+                }
+            }
+            catch { }
             try { _poolMonitor?.Dispose(); } catch { }
             try { _host?.Stop(); } catch { }
             try { _factory?.Dispose(); } catch { }
