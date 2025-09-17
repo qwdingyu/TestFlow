@@ -43,10 +43,10 @@ namespace ZL.WorkflowLib.Workflow
             var pipelines = new Dictionary<string, StepPipeline>(StringComparer.OrdinalIgnoreCase);
             IStepBuilder<FlowData, TransitionStep> lastTransition = null;
 
-            // È«¾Ö±ß±í£¨È¥ÖØÓÃ£©
+            // å…¨å±€è¾¹è¡¨ï¼ˆå»é‡ç”¨ï¼‰
             var edges = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            // 1) ¹¹½¨ pipeline
+            // 1) æ„å»º pipeline
             for (int i = 0; i < stepList.Count; i++)
             {
                 var rawStep = stepList[i];
@@ -62,7 +62,7 @@ namespace ZL.WorkflowLib.Workflow
                 lastTransition = pipeline.Transition;
             }
 
-            // 2) Æğµã
+            // 2) èµ·ç‚¹
             var firstPipeline = ResolveFirstPipeline(stepList, pipelines);
             if (firstPipeline != null && firstPipeline.EntryId.HasValue)
             {
@@ -71,9 +71,9 @@ namespace ZL.WorkflowLib.Workflow
                 init.Input<int?>(s => s.FirstStepId, data => stepId);
                 init.Input<string>(s => s.FirstStepName, data => stepName);
 
-                // ½ö±£Áô Outcome Â·ÓÉ
+                // ä»…ä¿ç•™ Outcome è·¯ç”±
                 AddOutcomeMapping(init, stepId, stepId);
-                ClearNextStep(init); // ĞŞ¸´£ºÕæÕıÇåµô init µÄÄ¬ÈÏ Next
+                ClearNextStep(init); // ä¿®å¤ï¼šçœŸæ­£æ¸…æ‰ init çš„é»˜è®¤ Next
             }
             else
             {
@@ -81,13 +81,13 @@ namespace ZL.WorkflowLib.Workflow
                 init.Input<string>(s => s.FirstStepName, d => string.Empty);
             }
 
-            // 3) ÅäÖÃ Transition£¨³É¹¦/Ê§°Ü£©
+            // 3) é…ç½® Transitionï¼ˆæˆåŠŸ/å¤±è´¥ï¼‰
             foreach (var pipe in pipelines.Values)
             {
                 ConfigureTransition(pipe, pipelines, edges);
             }
 
-            // 4) ´¦Àí DependsOn£¨¶àÇ°Çı£©
+            // 4) å¤„ç† DependsOnï¼ˆå¤šå‰é©±ï¼‰
             foreach (var pipe in pipelines.Values)
             {
                 var cfg = pipe.Config;
@@ -103,19 +103,19 @@ namespace ZL.WorkflowLib.Workflow
                     var depPipe = pipelines[dep];
                     if (depPipe.EntryId.HasValue && pipe.EntryId.HasValue)
                     {
-                        // Í³Ò» AddEdge£¨×Ô¶¯È¥ÖØ + Ìí¼Ó Outcome Ó³Éä£©
+                        // ç»Ÿä¸€ AddEdgeï¼ˆè‡ªåŠ¨å»é‡ + æ·»åŠ  Outcome æ˜ å°„ï¼‰
                         AddEdge(dep, cfg.Name, depPipe, pipe, edges);
                     }
                 }
             }
 
-            // 4.5) ÖØÒª£ºÈ¥µô¹¹½¨Ê±´®ÆğÀ´µÄ¡°Ä¬ÈÏ NextStep¡±¹Ç¼ÜÁ´£¬±ÜÃâË«Ö¸Õë
+            // 4.5) é‡è¦ï¼šå»æ‰æ„å»ºæ—¶ä¸²èµ·æ¥çš„â€œé»˜è®¤ NextStepâ€éª¨æ¶é“¾ï¼Œé¿å…åŒæŒ‡é’ˆ
             foreach (var pipe in pipelines.Values)
             {
                 ClearNextStep(pipe.Transition);
             }
 
-            // 5) ¼ì²éÈë¶È£¨ÌáÊ¾ JSON ÈßÓà£©
+            // 5) æ£€æŸ¥å…¥åº¦ï¼ˆæç¤º JSON å†—ä½™ï¼‰
             foreach (var p in pipelines.Values)
             {
                 int incoming = 0;
@@ -127,7 +127,7 @@ namespace ZL.WorkflowLib.Workflow
                 }
                 if (incoming > 1)
                 {
-                    UiEventBus.PublishLog("[BuildCheck] Step=" + p.Config.Name + " Èë±ßÊı=" + incoming + "£¬Çë¼ì²é JSON ÊÇ·ñ´æÔÚÖØ¸´ DependsOn Óë OnSuccess/OnFailure");
+                    UiEventBus.PublishLog("[BuildCheck] Step=" + p.Config.Name + " å…¥è¾¹æ•°=" + incoming + "ï¼Œè¯·æ£€æŸ¥ JSON æ˜¯å¦å­˜åœ¨é‡å¤ DependsOn ä¸ OnSuccess/OnFailure");
                 }
             }
         }
@@ -136,7 +136,7 @@ namespace ZL.WorkflowLib.Workflow
             where TPrev : StepBody
         {
             var entry = previous.Then<ResolveStepContextStep>();
-            // ÕâÀïÍ¨¹ıÏÔÊ½Çå¿ÕÉÏÒ»½ÚµãµÄ NextStep£¬È·±£Ã¿´ÎÁ´Ê½¹¹½¨¶¼ÒÔÊÖ¶¯ÅäÖÃµÄÌø×ªÎª×¼
+            // è¿™é‡Œé€šè¿‡æ˜¾å¼æ¸…ç©ºä¸Šä¸€èŠ‚ç‚¹çš„ NextStepï¼Œç¡®ä¿æ¯æ¬¡é“¾å¼æ„å»ºéƒ½ä»¥æ‰‹åŠ¨é…ç½®çš„è·³è½¬ä¸ºå‡†
             ClearNextStep(previous);
             entry.Input<StepConfig>(step => step.StepConfig, data => stepConfig);
 
@@ -235,14 +235,14 @@ namespace ZL.WorkflowLib.Workflow
 
             UiEventBus.PublishLog("[BuildWire] Step=" + cfg.Name + ", Success=" + success.StepName + "(" + (success.StepId.HasValue ? success.StepId.Value.ToString() : "-") + ") Failure=" + failure.StepName + "(" + (failure.StepId.HasValue ? failure.StepId.Value.ToString() : "-") + ")");
 
-            // È¥ÖØ£º³É¹¦/Ê§°ÜÍ¬Ä¿±ê
+            // å»é‡ï¼šæˆåŠŸ/å¤±è´¥åŒç›®æ ‡
             if (success.StepId.HasValue && failure.StepId.HasValue && success.StepId.Value == failure.StepId.Value)
             {
-                UiEventBus.PublishLog("[BuildDedup] " + cfg.Name + " ³É¹¦/Ê§°ÜÂ·ÓÉÖ¸ÏòÍ¬Ò»¸ö½Úµã " + success.StepName + "£¬×Ô¶¯È¥ÖØ");
+                UiEventBus.PublishLog("[BuildDedup] " + cfg.Name + " æˆåŠŸ/å¤±è´¥è·¯ç”±æŒ‡å‘åŒä¸€ä¸ªèŠ‚ç‚¹ " + success.StepName + "ï¼Œè‡ªåŠ¨å»é‡");
                 failure.StepId = null;
             }
 
-            // ¡ª¡ª ÓÃ AddEdge ½¨Á¢ Success / Failure Â·ÓÉ£¨²¢È«¾ÖÈ¥ÖØ£©
+            // â€”â€” ç”¨ AddEdge å»ºç«‹ Success / Failure è·¯ç”±ï¼ˆå¹¶å…¨å±€å»é‡ï¼‰
             if (success.StepId.HasValue)
             {
                 StepPipeline toPipe;
@@ -250,7 +250,7 @@ namespace ZL.WorkflowLib.Workflow
                 {
                     AddEdge(cfg.Name, success.StepName, pipeline, toPipe, edges);
                 }
-                // ±£ÁôÔ­ Input
+                // ä¿ç•™åŸ Input
                 pipeline.Transition.Input<int?>(s => s.SuccessStepId, data => success.StepId);
             }
 
@@ -261,7 +261,7 @@ namespace ZL.WorkflowLib.Workflow
                 {
                     AddEdge(cfg.Name, failure.StepName, pipeline, toPipe2, edges);
                 }
-                // ±£ÁôÔ­ Input
+                // ä¿ç•™åŸ Input
                 pipeline.Transition.Input<int?>(s => s.FailureStepId, data => failure.StepId);
             }
 
@@ -270,11 +270,11 @@ namespace ZL.WorkflowLib.Workflow
 
             pipeline.Transition.Input<string>(s => s.FailureStepName, data => failure.StepName);
             pipeline.Transition.Input<bool>(s => s.FailureTargetExists, data => failure.Exists);
-            // ³É¹¦ÅäÖÃÍêÂ·ÓÉºóÔÙÇåÀíÄ¬ÈÏ NextStep£¬±ÜÃâºóĞø¼ÌĞøµ÷ÓÃ Then Ê±³öÏÖÒâÍâÌø×ª
+            // æˆåŠŸé…ç½®å®Œè·¯ç”±åå†æ¸…ç†é»˜è®¤ NextStepï¼Œé¿å…åç»­ç»§ç»­è°ƒç”¨ Then æ—¶å‡ºç°æ„å¤–è·³è½¬
             ClearNextStep(pipeline.Transition);
         }
 
-        // Í³Ò»½¨±ß + È¥ÖØ + ÕæÕıÌí¼Ó Outcome Ó³Éä
+        // ç»Ÿä¸€å»ºè¾¹ + å»é‡ + çœŸæ­£æ·»åŠ  Outcome æ˜ å°„
         private static void AddEdge(string fromName,
                                     string toName,
                                     StepPipeline fromPipe,
@@ -290,16 +290,16 @@ namespace ZL.WorkflowLib.Workflow
             if (edges.Add(edgeKey))
             {
                 UiEventBus.PublishLog("[BuildWire] AddEdge " + fromName + " -> " + toName);
-                // Outcome.Value È¡¡°Ä¿±ê StepId¡±£¬NextStep Ò²Ö¸Ïò¡°Ä¿±ê StepId¡±
+                // Outcome.Value å–â€œç›®æ ‡ StepIdâ€ï¼ŒNextStep ä¹ŸæŒ‡å‘â€œç›®æ ‡ StepIdâ€
                 AddOutcomeMapping(fromPipe.Transition, toPipe.EntryId.Value, toPipe.EntryId.Value);
             }
             else
             {
-                UiEventBus.PublishLog("[BuildDedup] Ìø¹ıÖØ¸´±ß " + fromName + " -> " + toName);
+                UiEventBus.PublishLog("[BuildDedup] è·³è¿‡é‡å¤è¾¹ " + fromName + " -> " + toName);
             }
         }
 
-        // ===== ÆäÓà¸¨Öú·½·¨±£³Ö²»±ä£¨½öĞŞÕı ClearNextStep ÒÔÊÊÅä NextStepId£© =====
+        // ===== å…¶ä½™è¾…åŠ©æ–¹æ³•ä¿æŒä¸å˜ï¼ˆä»…ä¿®æ­£ ClearNextStep ä»¥é€‚é… NextStepIdï¼‰ =====
 
         private static StepPipeline ResolveFirstPipeline(IList<StepConfig> steps, IDictionary<string, StepPipeline> pipelines)
         {
@@ -379,7 +379,7 @@ namespace ZL.WorkflowLib.Workflow
             var nextProp = stepObj.GetType().GetProperty("NextStep");
             if (nextProp != null)
             {
-                // WorkflowCore 2.x/3.x ÖĞ NextStep ¿ÉÄÜÊÇÒıÓÃÀàĞÍ£¨StepBase£©»ò¿É¿ÕÖµÀàĞÍ£¬Í³Ò»ÖÃÎªÄ¬ÈÏÖµ
+                // WorkflowCore 2.x/3.x ä¸­ NextStep å¯èƒ½æ˜¯å¼•ç”¨ç±»å‹ï¼ˆStepBaseï¼‰æˆ–å¯ç©ºå€¼ç±»å‹ï¼Œç»Ÿä¸€ç½®ä¸ºé»˜è®¤å€¼
                 object nextValue = null;
                 if (nextProp.PropertyType.IsValueType && Nullable.GetUnderlyingType(nextProp.PropertyType) == null)
                 {
@@ -391,7 +391,7 @@ namespace ZL.WorkflowLib.Workflow
             var nextIdProp = stepObj.GetType().GetProperty("NextStepId");
             if (nextIdProp != null)
             {
-                // WorkflowCore 3.15 ½« NextStepId ¶ÀÁ¢³ÉÊôĞÔ£¬ÕâÀïÍ¬ÑùÇå¿ÕÒÔ±ÜÃâÄ¬ÈÏ×Ô¶¯ÏÎ½Ó
+                // WorkflowCore 3.15 å°† NextStepId ç‹¬ç«‹æˆå±æ€§ï¼Œè¿™é‡ŒåŒæ ·æ¸…ç©ºä»¥é¿å…é»˜è®¤è‡ªåŠ¨è¡”æ¥
                 object nextIdValue = null;
                 if (nextIdProp.PropertyType.IsValueType && Nullable.GetUnderlyingType(nextIdProp.PropertyType) == null)
                 {
@@ -471,3 +471,4 @@ namespace ZL.WorkflowLib.Workflow
         }
     }
 }
+
