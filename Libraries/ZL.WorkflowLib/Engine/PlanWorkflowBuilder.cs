@@ -65,17 +65,55 @@ namespace ZL.WorkflowLib.Engine
                     if (task == null)
                         continue;
 
-                    var taskClone = CloneTask(task);
-                    var execBuilder = lastExec == null
+                    var repeatCount = NormalizeRepeat(task.Window);
+                    var intervalMs = NormalizeInterval(task.Window);
+                    var taskId = task.Id != null ? task.Id : string.Empty;
+
+                    if (repeatCount <= 1)
+                    {
+                        var singleTask = CloneTask(task);
+                        var singleExec = lastExec == null
+                            ? init.Then<ExecutePlanTaskStep>()
+                            : lastExec.Then<ExecutePlanTaskStep>();
+
+                        ConfigureExecuteStep(singleExec, singleTask, planName, i);
+                        lastExec = singleExec;
+                        continue;
+                    }
+
+                    var firstIterationTask = CloneTask(task);
+                    var iterationExec = lastExec == null
                         ? init.Then<ExecutePlanTaskStep>()
                         : lastExec.Then<ExecutePlanTaskStep>();
 
-                    execBuilder
-                        .Input(step => step.Task, data => taskClone)
-                        .Input(step => step.PlanName, data => planName)
-                        .Input(step => step.OrderIndex, data => i);
+                    ConfigureExecuteStep(iterationExec, firstIterationTask, planName, i);
 
-                    lastExec = execBuilder;
+                    for (int iteration = 1; iteration < repeatCount; iteration++)
+                    {
+                        if (intervalMs > 0)
+                        {
+                            var currentIndex = iteration + 1;
+                            var schedule = iterationExec.Then<ScheduleCanMessageStep>();
+                            schedule
+                                .Input(step => step.TaskId, data => taskId)
+                                .Input(step => step.PlanName, data => planName)
+                                .Input(step => step.IterationIndex, data => currentIndex)
+                                .Input(step => step.TotalIterations, data => repeatCount)
+                                .Input(step => step.SharedContext, data => data.SharedContext)
+                                .WithSchedule(data => new PlanScheduleOptions { IntervalMs = intervalMs });
+
+                            iterationExec = schedule.Then<ExecutePlanTaskStep>();
+                        }
+                        else
+                        {
+                            iterationExec = iterationExec.Then<ExecutePlanTaskStep>();
+                        }
+
+                        var nextTask = CloneTask(task);
+                        ConfigureExecuteStep(iterationExec, nextTask, planName, i);
+                    }
+
+                    lastExec = iterationExec;
                 }
             }
 
@@ -99,6 +137,44 @@ namespace ZL.WorkflowLib.Engine
             data.PlanName = data.Plan != null ? data.Plan.Name : string.Empty;
             data.SharedContext = context;
             return data;
+        }
+
+        /// <summary>
+        ///     为指定的执行节点配置输入映射，确保后续步骤能获得任务定义与上下文信息。
+        /// </summary>
+        private static void ConfigureExecuteStep(
+            IStepBuilder<PlanWorkflowData, ExecutePlanTaskStep> builder,
+            OrchTask task,
+            string planName,
+            int orderIndex)
+        {
+            if (builder == null)
+                throw new ArgumentNullException(nameof(builder));
+
+            builder
+                .Input(step => step.Task, data => task)
+                .Input(step => step.PlanName, data => planName)
+                .Input(step => step.OrderIndex, data => orderIndex);
+        }
+
+        /// <summary>
+        ///     归一化窗口重复次数，避免出现 0 或负数导致循环被跳过。
+        /// </summary>
+        private static int NormalizeRepeat(WindowSpec window)
+        {
+            if (window == null)
+                return 1;
+            return window.Repeat > 1 ? window.Repeat : 1;
+        }
+
+        /// <summary>
+        ///     归一化窗口间隔，确保负值被视为零等待。
+        /// </summary>
+        private static int NormalizeInterval(WindowSpec window)
+        {
+            if (window == null)
+                return 0;
+            return window.IntervalMs > 0 ? window.IntervalMs : 0;
         }
 
         /// <summary>
@@ -277,6 +353,72 @@ namespace ZL.WorkflowLib.Engine
             }
 
             UiEventBus.PublishLog("[Plan] 初始化编排：" + data.PlanName);
+            return ExecutionResult.Next();
+        }
+    }
+
+    /// <summary>
+    ///     负责在窗口化任务的两次执行之间插入等待，确保 CAN 轮询等场景能够按照设定的节奏发送报文。
+    /// </summary>
+    internal sealed class ScheduleCanMessageStep : StepBody, IPlanScheduleConfigurable
+    {
+        /// <summary>即将重复执行的任务 Id，主要用于日志输出。</summary>
+        public string TaskId { get; set; }
+
+        /// <summary>所属计划名称，辅助定位日志来源。</summary>
+        public string PlanName { get; set; }
+
+        /// <summary>下一次执行的序号（从 1 开始计数）。</summary>
+        public int IterationIndex { get; set; }
+
+        /// <summary>总共需要执行的次数。</summary>
+        public int TotalIterations { get; set; }
+
+        /// <summary>用于回退到原始步骤上下文的引用，提供取消令牌。</summary>
+        public StepContext SharedContext { get; set; }
+
+        /// <summary>实现 <see cref="IPlanScheduleConfigurable"/>，由构建器注入的等待时长。</summary>
+        public int IntervalMs { get; set; }
+
+        public override ExecutionResult Run(IStepExecutionContext context)
+        {
+            var data = (PlanWorkflowData)context.Workflow.Data;
+
+            var token = CancellationToken.None;
+            if (data.PlanCancellation != null)
+                token = data.PlanCancellation.Token;
+            else if (SharedContext != null)
+                token = SharedContext.Cancellation;
+
+            var normalizedInterval = IntervalMs > 0 ? IntervalMs : 0;
+            if (normalizedInterval <= 0)
+                return ExecutionResult.Next();
+
+            var iterationLabel = IterationIndex > 0 && TotalIterations > 0
+                ? IterationIndex + "/" + TotalIterations
+                : IterationIndex.ToString();
+
+            var planLabel = !string.IsNullOrWhiteSpace(PlanName) ? PlanName : string.Empty;
+            var taskLabel = !string.IsNullOrWhiteSpace(TaskId) ? TaskId : "<anonymous>";
+
+            UiEventBus.PublishLog(string.Format(
+                "[Plan] 任务 {0} 等待 {1} ms 后进入第 {2} 次执行 ({3})",
+                taskLabel,
+                normalizedInterval,
+                iterationLabel,
+                planLabel));
+
+            try
+            {
+                Task.Delay(normalizedInterval, token).Wait(token);
+            }
+            catch (OperationCanceledException)
+            {
+                UiEventBus.PublishLog(string.Format(
+                    "[Plan] 任务 {0} 的窗口调度在等待期间被取消",
+                    taskLabel));
+            }
+
             return ExecutionResult.Next();
         }
     }
@@ -619,6 +761,56 @@ namespace ZL.WorkflowLib.Engine
             var status = result.Success ? "成功" : "失败";
             UiEventBus.PublishLog($"[Plan] 编排 {PlanName} 结束，结果：{status}");
             return ExecutionResult.Next();
+        }
+    }
+
+    /// <summary>
+    ///     定义可配置的调度接口，供编排构建阶段统一注入等待时间。
+    /// </summary>
+    internal interface IPlanScheduleConfigurable
+    {
+        int IntervalMs { get; set; }
+    }
+
+    /// <summary>
+    ///     构建期注入调度参数的载体，便于做统一的归一化处理。
+    /// </summary>
+    internal sealed class PlanScheduleOptions
+    {
+        public int IntervalMs { get; set; }
+
+        public static PlanScheduleOptions Normalize(PlanScheduleOptions options)
+        {
+            if (options == null)
+                return new PlanScheduleOptions { IntervalMs = 0 };
+
+            return new PlanScheduleOptions
+            {
+                IntervalMs = options.IntervalMs > 0 ? options.IntervalMs : 0
+            };
+        }
+    }
+
+    /// <summary>
+    ///     针对计划编排的专用扩展方法，帮助在链式构建时注入调度参数。
+    /// </summary>
+    internal static class PlanWorkflowStepExtensions
+    {
+        public static IStepBuilder<PlanWorkflowData, TStep> WithSchedule<TStep>(
+            this IStepBuilder<PlanWorkflowData, TStep> builder,
+            Func<PlanWorkflowData, PlanScheduleOptions> selector)
+            where TStep : StepBody, IPlanScheduleConfigurable
+        {
+            if (builder == null)
+                throw new ArgumentNullException(nameof(builder));
+
+            builder.Input(step => step.IntervalMs, data =>
+            {
+                var normalized = PlanScheduleOptions.Normalize(selector != null ? selector(data) : null);
+                return normalized.IntervalMs;
+            });
+
+            return builder;
         }
     }
 }
