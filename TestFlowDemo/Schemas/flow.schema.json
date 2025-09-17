@@ -19,7 +19,7 @@
         "Name": { "type": "string", "minLength": 1 },
         "Description": { "type": "string" },
         "Type": { "type": "string", "enum": ["Normal", "SubFlow", "SubFlowRef"] },
-        "Device": { "type": "string" },
+        "Target": { "type": "string" },
         "Command": { "type": "string" },
         "Parameters": { "type": "object" },
         "ExpectedResults": { "type": "object" },

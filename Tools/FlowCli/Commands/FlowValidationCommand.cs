@@ -213,7 +213,7 @@ namespace Cli.Commands
                 string type = (step.Type ?? "Normal").Trim();
                 if (string.Equals(type, "Normal", StringComparison.OrdinalIgnoreCase) || string.IsNullOrEmpty(type))
                 {
-                    string key = string.IsNullOrWhiteSpace(step.Device) ? step.Target : step.Device;
+                    string key = string.IsNullOrWhiteSpace(step.Target) ? step.Target : step.Target;
                     if (string.IsNullOrWhiteSpace(key))
                     {
                         throw new Exception("普通步骤 " + step.Name + " 缺少 Device/Target 字段");
@@ -266,14 +266,14 @@ namespace Cli.Commands
         {
             foreach (StepConfig ss in subSteps)
             {
-                if (string.IsNullOrEmpty(ss.Device))
+                if (string.IsNullOrEmpty(ss.Target))
                 {
                     throw new Exception("子流程 " + owner + " 的子步骤 " + ss.Name + " 缺少 Device");
                 }
 
-                if (!cfg.Devices.ContainsKey(ss.Device))
+                if (!cfg.Devices.ContainsKey(ss.Target))
                 {
-                    throw new Exception("子流程 " + owner + " 的子步骤 " + ss.Name + " 引用未知设备: " + ss.Device);
+                    throw new Exception("子流程 " + owner + " 的子步骤 " + ss.Name + " 引用未知设备: " + ss.Target);
                 }
             }
         }

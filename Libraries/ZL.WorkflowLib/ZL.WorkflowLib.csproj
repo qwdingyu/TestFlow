@@ -6,6 +6,8 @@
     <AssemblyName>ZL.WorkflowLib</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="Engine\OrchestrationModels.cs" />
+    <Compile Remove="Engine\PlanWorkflowBuilder.cs" />
     <Compile Remove="Workflow\StepBodiesV1.cs" />
     <Compile Remove="docs\StepBodiesV1.cs" />
   </ItemGroup>

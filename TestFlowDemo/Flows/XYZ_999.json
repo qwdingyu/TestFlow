@@ -4,7 +4,7 @@
     {
       "Name": "power_on",
       "Description": "上电",
-      "Device": "power_supply_1",
+      "Target": "power_supply_1",
       "Command": "set_voltage",
       "Parameters": { "voltage": 12.0 },
       "ExpectedResults": {
@@ -20,7 +20,7 @@
     {
       "Name": "test_current",
       "Description": "测试电流",
-      "Device": "current_meter_1",
+      "Target": "current_meter_1",
       "Command": "measure",
       "Parameters": { "range": "auto" },
       "ExpectedResults": {
@@ -37,7 +37,7 @@
     {
       "Name": "test_resistance",
       "Description": "测试绝缘电阻",
-      "Device": "resistance_meter_1",
+      "Target": "resistance_meter_1",
       "Command": "measure_resistance",
       "Parameters": { "range": "10k" },
       "ExpectedResults": {
@@ -54,7 +54,7 @@
     {
       "Name": "test_noise",
       "Description": "测试噪音水平",
-      "Device": "noise_meter_1",
+      "Target": "noise_meter_1",
       "Command": "measure",
       "Parameters": { "weighting": "A" },
       "ExpectedResults": {
@@ -71,7 +71,7 @@
     {
       "Name": "can_test",
       "Description": "测试CAN总线通信",
-      "Device": "can_adapter_1",
+      "Target": "can_adapter_1",
       "Command": "send_and_receive",
       "Parameters": {
         "id": "0x123",
@@ -90,7 +90,7 @@
     {
       "Name": "power_off",
       "Description": "关闭产品电源",
-      "Device": "power_supply_1",
+      "Target": "power_supply_1",
       "Command": "set_voltage",
       "Parameters": { "voltage": 0.0 },
       "ExpectedResults": {
@@ -111,7 +111,7 @@
     {
       "Name": "generate_report",
       "Description": "生成测试报告",
-      "Device": "report_generator",
+      "Target": "report_generator",
       "Command": "generate",
       "Parameters": { "format": "html" },
       "ExpectedResults": {},
@@ -123,7 +123,7 @@
     {
       "Name": "end_test",
       "Description": "测试结束",
-      "Device": "system",
+      "Target": "system",
       "Command": "shutdown",
       "Parameters": {},
       "ExpectedResults": {},

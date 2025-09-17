@@ -2,6 +2,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using ZL.DeviceLib;
 using ZL.DeviceLib.Models;
 
 namespace ZL.WorkflowLib.Engine
@@ -13,7 +14,7 @@ namespace ZL.WorkflowLib.Engine
             if (cfg == null) throw new ArgumentNullException(nameof(cfg));
             if (cfg.TestSteps == null || cfg.TestSteps.Count == 0)
                 throw new Exception($"型号 {cfg.Model} 流程为空");
-            if (cfg.Devices == null)
+            if (DeviceServices.Devices == null)
                 throw new Exception("设备清单未注入（Devices 为空）");
 
             // 1) 步骤名唯一、建立索引
@@ -163,10 +164,10 @@ namespace ZL.WorkflowLib.Engine
 
             var displayName = BuildStepDisplayName(owner, step.Name, category);
 
-            var key = string.IsNullOrWhiteSpace(step.Device) ? step.Target : step.Device;
+            var key = string.IsNullOrWhiteSpace(step.Target) ? step.Target : step.Target;
             if (string.IsNullOrWhiteSpace(key))
                 throw new Exception($"{displayName} 缺少 Device/Target 字段");
-            if (!cfg.Devices.ContainsKey(key))
+            if (!DeviceServices.Devices.ContainsKey(key))
                 throw new Exception($"{displayName} 引用未知设备: {key}");
             if (string.IsNullOrWhiteSpace(step.Command))
                 throw new Exception($"{displayName} 缺少 Command 字段");

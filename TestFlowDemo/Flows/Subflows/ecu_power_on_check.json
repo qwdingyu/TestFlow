@@ -6,7 +6,7 @@
     {
       "Name": "set_voltage",
       "Description": "设置电流",
-      "Device": "power_supply_1",
+      "Target": "power_supply_1",
       "Command": "set_voltage",
       "Parameters": {},
       "ExpectedResults": {
@@ -19,7 +19,7 @@
     {
       "Name": "measure_current",
       "Description": "设置电阻",
-      "Device": "current_meter_1",
+      "Target": "current_meter_1",
       "Command": "measure",
       "ExpectedResults": {
         "mode": "range",

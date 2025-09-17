@@ -4,7 +4,8 @@
     {
       "Name": "power_on",
       "Description": "上电",
-      "Device": "power_supply_1",
+      "Type": "Normal",
+      "Target": "power_supply_1",
       "Command": "set_voltage",
       "Parameters": { "voltage": 12.0 },
       "ExpectedResults": {
@@ -20,10 +21,14 @@
     {
       "Name": "mydriver_demo",
       "Description": "插件设备示例步骤",
-      "Device": "my_driver_1",
+      "Type": "Normal",
+      "Target": "my_driver_1",
       "Command": "demo",
-      "Parameters": { },
-      "ExpectedResults": { "mode": "exists", "key": "status" },
+      "Parameters": {},
+      "ExpectedResults": {
+        "mode": "exists",
+        "key": "status"
+      },
       "TimeoutMs": 1000,
       "DependsOn": [ "power_on" ],
       "OnSuccess": "ecu_can_check_ref",
@@ -31,18 +36,18 @@
     },
     {
       "Name": "ecu_can_check_ref",
+      "Description": "CAN 报文测试",
       "Type": "SubFlowRef",
       "Ref": "ecu_can_check",
-      "Description": "CAN 报文测试",
       "DependsOn": [ "power_on" ],
       "OnSuccess": "ecu_iv_check_ref",
       "OnFailure": "power_off"
     },
     {
       "Name": "ecu_iv_check_ref",
+      "Description": "电流电阻联动检查",
       "Type": "SubFlowRef",
       "Ref": "ecu_iv_check",
-      "Description": "电流电阻联动检查",
       "DependsOn": [ "ecu_can_check_ref" ],
       "OnSuccess": "power_off",
       "OnFailure": "power_off"
@@ -50,7 +55,8 @@
     {
       "Name": "power_off",
       "Description": "下电",
-      "Device": "power_supply_1",
+      "Type": "Normal",
+      "Target": "power_supply_1",
       "Command": "set_voltage",
       "Parameters": { "voltage": 0.0 },
       "ExpectedResults": {
@@ -66,7 +72,8 @@
     {
       "Name": "generate_report",
       "Description": "生成报告",
-      "Device": "report_generator",
+      "Type": "Normal",
+      "Target": "report_generator",
       "Command": "generate",
       "Parameters": { "format": "html" },
       "ExpectedResults": {},
@@ -78,7 +85,8 @@
     {
       "Name": "end_test",
       "Description": "测试结束",
-      "Device": "system",
+      "Type": "Normal",
+      "Target": "system",
       "Command": "shutdown",
       "Parameters": {},
       "ExpectedResults": {},

@@ -11,7 +11,10 @@ namespace ZL.WorkflowLib.Workflow
         public string Model { get; set; }
         public string Sn { get; set; }
         public bool LastSuccess { get; set; }
+        public int? InitialStepId { get; set; }
+        public string InitialStepName { get; set; }
         public string Current { get; set; }
+
         /// <summary>
         /// 标记当前主流程是否已经完成，防止重复执行收尾逻辑。
         /// </summary>
@@ -33,6 +36,10 @@ namespace ZL.WorkflowLib.Workflow
         /// 针对设备步骤额外维护的执行上下文（解析后的参数、重试配置、阶段性结果等）。
         /// </summary>
         public DeviceExecutionContext CurrentExecution { get; set; }
+        /// <summary>
+        /// 动态生成的子流程 Id
+        /// </summary>
+        public string WorkflowId { get; set; }
     }
 
     /// <summary>

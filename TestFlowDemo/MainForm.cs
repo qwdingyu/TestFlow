@@ -165,15 +165,10 @@ namespace TestFlowDemo
         {
             var services = new ServiceCollection()
                 .AddLogging(cfg => cfg.AddConsole())
-                .AddWorkflow(); // 不使用不存在的生命周期扩展
+                .AddWorkflow(cfg => { cfg.EnableEvents = true; });
 
             var provider = services.BuildServiceProvider();
             _host = provider.GetService<IWorkflowHost>();
-            WorkflowServices.WorkflowHost = _host; // 记录全局 Host，供子流程调度
-
-            _host.RegisterWorkflow<DynamicLoopWorkflow, FlowData>();
-            SubflowDefinitionCatalog.RegisterWorkflows(_host, WorkflowServices.Subflows);
-            _host.Start();
 
             _runner = new TestRunner(_host);
 

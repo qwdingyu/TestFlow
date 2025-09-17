@@ -6,7 +6,7 @@
     {
       "Name": "apply_resistance",
       "Description": "设定电阻",
-      "Device": "resistor_box",
+      "Target": "resistor_box",
       "Command": "set_resistance",
       "Parameters": { "value": 100 },
       "ExpectedResults": {
@@ -18,7 +18,7 @@
     {
       "Name": "measure_current",
       "Description": "测量电流",
-      "Device": "current_meter_1",
+      "Target": "current_meter_1",
       "Command": "measure",
       "Parameters": { "range": "auto" },
       "ExpectedResults": {
@@ -31,7 +31,7 @@
     {
       "Name": "measure_voltage",
       "Description": "测量电压",
-      "Device": "voltmeter_1",
+      "Target": "voltmeter_1",
       "Command": "measure",
       "Parameters": { "range": "auto" },
       "ExpectedResults": {

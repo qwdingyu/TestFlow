@@ -4,7 +4,7 @@
 		{
 			"Name": "power_on",
 			"Description": "上电",
-			"Device": "power_supply_1",
+			"Target": "power_supply_1",
 			"Command": "set_voltage",
 			"Parameters": { "voltage": 12.0 },
 			"ExpectedResults": { "mode": "equals", "key": "status", "value": "ok" },
@@ -25,7 +25,7 @@
 		{
 			"Name": "test_current",
 			"Description": "测试电流",
-			"Device": "current_meter_1",
+			"Target": "current_meter_1",
 			"Command": "measure",
 			"Parameters": { "range": "auto" },
 			"ExpectedResults": { "mode": "equals", "key": "current", "value": 1.8 },
@@ -37,7 +37,7 @@
 		{
 			"Name": "power_off",
 			"Description": "下电",
-			"Device": "power_supply_1",
+			"Target": "power_supply_1",
 			"Command": "set_voltage",
 			"Parameters": { "voltage": 0.0 },
 			"ExpectedResults": { "mode": "equals", "key": "status", "value": "ok" },
@@ -49,7 +49,7 @@
 		{
 			"Name": "generate_report",
 			"Description": "生成报告",
-			"Device": "report_generator",
+			"Target": "report_generator",
 			"Command": "generate",
 			"Parameters": { "format": "html" },
 			"ExpectedResults": {},
@@ -61,7 +61,7 @@
 		{
 			"Name": "end_test",
 			"Description": "测试结束",
-			"Device": "system",
+			"Target": "system",
 			"Command": "shutdown",
 			"Parameters": {},
 			"ExpectedResults": {},

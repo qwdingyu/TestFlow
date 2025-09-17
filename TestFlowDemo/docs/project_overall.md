@@ -25,7 +25,7 @@
 4. 需要支持 **周期报文（运行环境）** 和 **事件报文（控制 3+3 模式）** 的调度，确保测试逻辑符合 ECU 实际运行特性。
 5. 需要考虑 **前端 UI 选择测试项** → 动态生成流程 JSON 的能力，避免前端拼接复杂 JSON。
 6. 流程控制应具备确定性，避免子流程步骤无序并发执行带来的风险。
-7. 在架构选择上，本次决定采用 **独立编排器 (Orchestrator)** 方案，以提升流程控制能力和可维护性。
+7. 在架构选择上，本次决定采用 *WorkflowCore 原生步骤图** 搭配 JSON/YAML `StepConfig`，以提升流程控制能力和可维护性。
 
 ---
 
@@ -55,76 +55,56 @@
 
 ---
 
-## 三、独立编排器 (Orchestrator) 方案分析
+## 三、WorkflowCore 节点映射方案
 
 ### 3.1 目标与思路
 
-- 从 `DeviceExecStep` 中抽离“编排责任”，让 Step 只负责**触发/提交计划**，具体执行由编排器完成：
-  - 设备任务 DAG（依赖/并行/窗口/重复/对齐）
-  - 全局资源锁（基于 `resourceId`）
-  - 统一超时/取消/重试策略
-  - 任务级日志与追踪（traceId）
-  - 结果聚合与标准化
+- 以 `StepConfig` 作为**唯一**的流程描述模型，避免额外维护 `OrchestrationPlan`/`OrchTask` 等中间结构。
+- 支持从 JSON/YAML 文件直接反序列化为 `StepConfig`，并在 WorkflowCore 的 `Build` 阶段映射为节点。
+- 子流程与主流程使用完全一致的模型，子流程注册后即可作为 `SubFlow`/`SubFlowRef` 节点复用。
+- 所有控制能力（依赖、跳转、重试、资源锁、期望值判定）均由现有 StepBody 组合完成。
 
 ### 3.2 设计（接口草案）
 
 ```csharp
-public interface IOrchestrator
+public void Build(IWorkflowBuilder<FlowData> builder)
 {
-    OrchestrationResult Execute(OrchestrationPlan plan, StepContext ctx);
-}
+    var init = builder.StartWith<InitStep>();
+    var pipelines = new Dictionary<string, StepPipeline>(StringComparer.OrdinalIgnoreCase);
+    IStepBuilder<FlowData, TransitionStep> lastTransition = null;
 
-public sealed class OrchestrationPlan
-{
-    public string Name;
-    public List<OrchTask> Tasks = new List<OrchTask>();  // DAG 节点
-}
+    foreach (var step in DeviceServices.Config.TestSteps)
+    {
+        var pipeline = BuildPipeline(lastTransition ?? init, step);
+        pipelines[step.Name] = pipeline;
+        lastTransition = pipeline.Transition;
+    }
 
-public sealed class OrchTask
-{
-    public string Id;                 // 任务标识
-    public string Device;             // 设备名
-    public string Command;            // 命令
-    public Dictionary<string, object> Parameters;
-    public string ResourceId;         // 物理资源互斥键（如 "can://ch0"）
-    public List<string> DependsOn;    // 依赖任务 Ids
-    public int TimeoutMs;             // 单任务超时
-    public RetrySpec Retry;           // 重试策略（查询类优先）
-    public WindowSpec Window;         // 可选：对齐/重复窗口
-}
-
-public sealed class RetrySpec { public int Attempts; public int DelayMs; }
-public sealed class WindowSpec { public int Repeat; public int IntervalMs; }
-
-public sealed class OrchestrationResult
-{
-    public bool Success;
-    public Dictionary<string, Dictionary<string, object>> Outputs; // Id -> 输出
-    public string Message;
+    foreach (var pipeline in pipelines.Values)
+        ConfigureTransition(pipeline, pipelines);
 }
 ```
+> 注：实际实现位于 `DynamicLoopWorkflow`，会根据 `Type` 判断是否为子流程，并对并行/附属设备执行等场景追加节点。示例仅强调“直接由 `StepConfig` 生成 WorkflowCore 节点”。
 
-**DeviceExecStep 的最小改动**：将 `__exec` 转换为 `OrchestrationPlan`，调用 `IOrchestrator.Execute(...)`。
+### 3.3 数据转换流程
 
-### 3.3 改动面与成本（粗估）
-
-- **新逻辑**：OrchestrationLib（1~2k 行）+ `__exec` 适配器（200~400 行）。
-- **修改点**：`DeviceExecStep`（~150 行以内变更）、引入 `resourceId`（设备配置变更）。
-- **人力/时间**：MVP：1 人 2~3 周；集成与灰度：1 周。
-- **兼容性**：保持 netstandard2.0，支持 .NET 4.8 / .NET 7；限定 C# 7 语法。
+1. 从 `Flows/`、`Flows/Subflows/` 读取 JSON/YAML，反序列化为 `FlowConfig`/`StepConfig`。
+2. `DynamicLoopWorkflow` 根据 `StepConfig` 列表构建主流程节点；`JsonSubFlowWorkflow` 为子流程包装单一节点。
+3. 运行期由 `WorkflowHost` 执行节点，`SubFlowExecutor` 和 `DeviceExecStep` 负责实际设备调用与期望值校验。
+4. 所有状态通过 `FlowData` 传递，数据库记录由 `DeviceServices.Db` 统一落库。
 
 ### 3.4 收益
 
-- 编排可复用/可组合：跨步骤/跨场景的任务图能沉淀为“模板”。
-- 清晰的职责分离：Step 只做“触发”，Orchestrator 专注“执行”。
-- 更强的全局能力：多任务窗口化、全局资源锁、跨设备对时。
-- 长期维护成本降低：复杂性从 DeviceExecStep 中抽出，集中治理。
+- 模型统一：主流程、子流程、动态模板全部使用 `StepConfig`，无额外映射层。
+- 维护简单：新增字段只需扩展 `StepConfig` 及对应 StepBody，无需同步更新计划类。
+- 文档友好：配置示例直接对应运行时节点，便于培训与排查。
+- 复用增强：JSON/YAML 模板可直接下发到 CLI 或上位机，无需额外转换工具。
 
 ### 3.5 风险与缓解
 
-- **学习曲线**：需要团队理解 Plan/DAG 概念 → 通过 `__exec` 适配平滑过渡。
-- **过度设计**：避免一开始把编排器做成“重量级引擎”，坚持 MVP（依赖/并行/超时/锁/聚合）。
-
+- **JSON/YAML 质量**：需通过 `FlowCli validate`、`FlowValidator` 保证必填字段与引用有效。
+- **复杂场景**：并发/附属设备逻辑需在 StepBody 中持续沉淀范式，避免模板直接写自定义逻辑。
+- **YAML 兼容性**：目前以内置 JSON 为主，后续若接入 YAML 需补充 Schema 与解析测试。
 ---
 
 ## 四、动态生成测试流程 JSON 的方案
@@ -213,22 +193,22 @@ public sealed class OrchestrationResult
 
 - **前端极简**：表格勾选即可，不处理复杂 JSON。
 - **后端集中管理**：新增测试项只需扩展模板。
-- **降低风险**：流程顺序由编排器保证，避免子流程无序并行。
+- **降低风险**：流程顺序由 WorkflowCore 步骤图保证，避免子流程无序并行。
 - **可扩展性**：未来加入更多测试项或子流程，只需扩展模板。
 
 ---
 
 ## 五、结论与方向
 
-1. 已决定采用 **独立编排器** 方案，确保流程控制可维护、可扩展。
+1. 已决定采用 **WorkflowCore 节点映射** 方案，JSON/YAML `StepConfig` 直接转换为执行节点，不再维护额外计划模型。
 2. 动态测试 JSON 生成由后端模板拼接完成，前端仅负责勾选。
 3. 项目已完成：
    - `ZL.DeviceLib` / `ZL.WorkflowLib` 的分层与依赖切分。
    - `DeviceServices` + `WorkflowServices` 的独立化。
 4. 下一步：
-   - 实现 Orchestrator MVP（2~3 周）。
-   - 引入流程模板库，支持动态生成 JSON。
-   - 确保流程执行顺序确定，减少风险。
+   - 持续完善模板库与校验工具，保证 StepConfig 字段与 WorkflowCore 节点一一对应。
+   - 根据需要补充 YAML 解析与 Schema 校验示例。
+   - 确保流程执行顺序与资源锁语义在 StepBody 中持续演进。
 5. 长期方向：
-   - 通过编排器逐步沉淀可复用的流程模板。
+   - 在通用 StepBody 中沉淀更多可复用的设备协同范式。
    - 考虑未来扩展事件驱动（被动响应）模式，降低上位机主动控制的风险。

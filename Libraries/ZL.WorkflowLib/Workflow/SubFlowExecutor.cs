@@ -118,10 +118,19 @@ namespace ZL.WorkflowLib.Workflow
             try
             {
                 var runId = host.StartWorkflow(workflowId, subData).GetAwaiter().GetResult();
-                WorkflowInstance instance = host.WaitForWorkflowToComplete(runId, data.Cancellation).GetAwaiter().GetResult();
-
-                var childData = instance != null ? instance.Data as FlowData : null;
-                bool success = childData != null && childData.LastSuccess;
+                //WorkflowInstance instance = host.WaitForWorkflowToComplete(runId, data.Cancellation).GetAwaiter().GetResult();
+                var instance = host.WaitForWorkflowToCompleteAsync(runId, data.Cancellation).GetAwaiter().GetResult();
+                bool success = false;
+                if (instance.Status == WorkflowStatus.Complete)
+                {
+                    // 成功
+                    success = true;
+                }
+                else if (instance.Status == WorkflowStatus.Terminated)
+                {
+                    // 失败
+                    success = false;
+                }
                 data.LastSuccess = success;
 
                 if (!success)
@@ -169,7 +178,7 @@ namespace ZL.WorkflowLib.Workflow
                 if (_registeredWorkflows.Contains(workflowId))
                     return;
 
-                host.RegisterWorkflow(new JsonSubFlowWorkflow(definition));
+                host.Registry.RegisterWorkflow(new JsonSubFlowWorkflow(definition));
                 MarkWorkflowRegistered(workflowId);
             }
         }
@@ -259,8 +268,8 @@ namespace ZL.WorkflowLib.Workflow
         {
             if (!string.IsNullOrEmpty(resourceId))
                 return resourceId;
-            if (!string.IsNullOrEmpty(step.Device))
-                return step.Device;
+            if (!string.IsNullOrEmpty(step.Target))
+                return step.Target;
             if (!string.IsNullOrEmpty(step.Target))
                 return step.Target;
             return !string.IsNullOrEmpty(step.Name) ? step.Name : Guid.NewGuid().ToString("N");
@@ -294,10 +303,10 @@ namespace ZL.WorkflowLib.Workflow
                 }
             }
 
-            if (!string.IsNullOrEmpty(step.Device))
+            if (!string.IsNullOrEmpty(step.Target))
             {
-                UiEventBus.PublishLog(string.Format("[SubFlow] 步骤 {0} 默认使用设备名 {1} 作为资源锁", contextName, step.Device));
-                return step.Device;
+                UiEventBus.PublishLog(string.Format("[SubFlow] 步骤 {0} 默认使用设备名 {1} 作为资源锁", contextName, step.Target));
+                return step.Target;
             }
 
             if (!string.IsNullOrEmpty(step.Target))
@@ -318,7 +327,7 @@ namespace ZL.WorkflowLib.Workflow
                 data.Sn,
                 step.Name,
                 step.Description,
-                step.Device,
+                step.Target,
                 step.Command,
                 JsonConvert.SerializeObject(step.Parameters ?? new Dictionary<string, object>()),
                 JsonConvert.SerializeObject(step.ExpectedResults ?? new Dictionary<string, object>()),

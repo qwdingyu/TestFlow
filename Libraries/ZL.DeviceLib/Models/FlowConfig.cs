@@ -6,7 +6,6 @@ namespace ZL.DeviceLib.Models
     {
         public string Model { get; set; }
         public List<StepConfig> TestSteps { get; set; }
-        public Dictionary<string, DeviceConfig> Devices { get; set; }
     }
 }
 

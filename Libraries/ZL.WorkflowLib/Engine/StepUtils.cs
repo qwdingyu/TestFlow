@@ -15,7 +15,6 @@ namespace ZL.WorkflowLib.Engine
             {
                 Name = src.Name,
                 Description = src.Description,
-                Device = src.Device,
                 Target = src.Target,
                 Command = src.Command,
                 Parameters = effectiveParams,
@@ -56,8 +55,8 @@ namespace ZL.WorkflowLib.Engine
             var effectiveParams = ResolveParameters(stepCfg, data);
             var step = CloneWithParams(stepCfg, effectiveParams);
             // 语义泛化：若未提供 Device，使用 Target 作为设备键
-            if (string.IsNullOrWhiteSpace(step.Device) && !string.IsNullOrWhiteSpace(step.Target))
-                step.Device = step.Target;
+            if (string.IsNullOrWhiteSpace(step.Target) && !string.IsNullOrWhiteSpace(step.Target))
+                step.Target = step.Target;
             return step;
         }
     }

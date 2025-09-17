@@ -11,6 +11,7 @@ using ZL.DeviceLib;
 using ZL.DeviceLib.Engine;
 using ZL.DeviceLib.Models;
 using ZL.WorkflowLib.Engine;
+using ZL.WorkflowLib.Utils;
 
 namespace ZL.WorkflowLib.Workflow
 {
@@ -34,7 +35,6 @@ namespace ZL.WorkflowLib.Workflow
             var data = (FlowData)context.Workflow.Data;
             data.WorkflowCompleted = false;
             data.LastSuccess = true;
-            data.Model = DeviceServices.Config.Model;
             data.Current = null;
             data.CurrentStepConfig = null;
             data.CurrentStepKind = StepExecutionKind.None;
@@ -48,7 +48,7 @@ namespace ZL.WorkflowLib.Workflow
             if (FirstStepId.HasValue)
             {
                 data.Current = FirstStepName;
-                return ExecutionResult.Next(FirstStepId.Value);
+                return ExecutionResult.Outcome(FirstStepId.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(FirstStepName))
@@ -116,6 +116,7 @@ namespace ZL.WorkflowLib.Workflow
     {
         public override ExecutionResult Run(IStepExecutionContext context)
         {
+            Dbg.WfDbg(context, "Prepare");
             var data = (FlowData)context.Workflow.Data;
             if (data.WorkflowCompleted || data.CurrentStepKind != StepExecutionKind.Device)
                 return ExecutionResult.Next();
@@ -141,7 +142,7 @@ namespace ZL.WorkflowLib.Workflow
 
             data.CurrentExecution = execution;
 
-            UiEventBus.PublishLog($"--[Flow] 开始 {execStep.Name}, 设备【{execStep.Device}】, 描述【{execStep.Description}】, 下一步【{execStep.OnSuccess}】");
+            UiEventBus.PublishLog($"--[Flow] 开始 {execStep.Name}, 设备【{execStep.Target}】, 描述【{execStep.Description}】, 下一步【{execStep.OnSuccess}】");
             return ExecutionResult.Next();
         }
     }
@@ -163,7 +164,7 @@ namespace ZL.WorkflowLib.Workflow
                 return ExecutionResult.Next();
 
             if (string.IsNullOrWhiteSpace(DeviceName) && data.CurrentExecution.ExecutableStep != null)
-                DeviceName = data.CurrentExecution.ExecutableStep.Device;
+                DeviceName = data.CurrentExecution.ExecutableStep.Target;
 
             if (string.IsNullOrWhiteSpace(DeviceName))
                 return ExecutionResult.Next();
@@ -201,7 +202,7 @@ namespace ZL.WorkflowLib.Workflow
                 var retry = new RetrySpec { Attempts = RetryAttempts, DelayMs = RetryDelayMs };
                 exec.MainOutputs = DeviceExecutionHelper.ExecuteDeviceCommand(
                     data,
-                    exec.ExecutableStep.Device,
+                    exec.ExecutableStep.Target,
                     exec.ExecutableStep.Command,
                     exec.ExecutableStep.Parameters,
                     exec.ExecutableStep.TimeoutMs,
@@ -217,7 +218,7 @@ namespace ZL.WorkflowLib.Workflow
                 exec.MainSuccess = false;
                 exec.MainError = ex;
                 exec.MainOutputs = new Dictionary<string, object>();
-                UiEventBus.PublishLog($"[Main] {exec.ExecutableStep.Device}.{exec.ExecutableStep.Command} 失败：{ex.Message}");
+                UiEventBus.PublishLog($"[Main] {exec.ExecutableStep.Target}.{exec.ExecutableStep.Command} 失败：{ex.Message}");
             }
             finally
             {
@@ -228,7 +229,7 @@ namespace ZL.WorkflowLib.Workflow
                     try
                     {
                         exec.MainLockHandle.Dispose();
-                        UiEventBus.PublishLog($"[Lock] 释放设备互斥锁：{exec.ExecutableStep.Device}");
+                        UiEventBus.PublishLog($"[Lock] 释放设备互斥锁：{exec.ExecutableStep.Target}");
                     }
                     catch
                     {
@@ -313,6 +314,7 @@ namespace ZL.WorkflowLib.Workflow
     {
         public override ExecutionResult Run(IStepExecutionContext context)
         {
+            Dbg.WfDbg(context, "Finalize");
             var data = (FlowData)context.Workflow.Data;
             var exec = data.CurrentExecution;
             if (data.WorkflowCompleted || data.CurrentStepKind != StepExecutionKind.Device || exec == null)
@@ -341,7 +343,7 @@ namespace ZL.WorkflowLib.Workflow
                     data.Sn,
                     exec.ExecutableStep.Name,
                     exec.ExecutableStep.Description,
-                    exec.ExecutableStep.Device,
+                    exec.ExecutableStep.Target,
                     exec.ExecutableStep.Command,
                     JsonConvert.SerializeObject(exec.ExecutableStep.Parameters),
                     JsonConvert.SerializeObject(exec.ExecutableStep.ExpectedResults),
@@ -352,7 +354,7 @@ namespace ZL.WorkflowLib.Workflow
                     exec.FinishedAt);
 
                 data.LastSuccess = pooledResult.Success;
-                UiEventBus.PublishLog($"[Step] {exec.ExecutableStep.Name} | 设备={exec.ExecutableStep.Device} | Success={pooledResult.Success} | Msg={pooledResult.Message}");
+                UiEventBus.PublishLog($"[Step] {exec.ExecutableStep.Name} | 设备={exec.ExecutableStep.Target} | Success={pooledResult.Success} | Msg={pooledResult.Message}");
             }
             catch (Exception ex)
             {
@@ -364,7 +366,7 @@ namespace ZL.WorkflowLib.Workflow
                     data.Sn,
                     exec.SourceStep != null ? exec.SourceStep.Name : data.Current,
                     exec.SourceStep != null ? exec.SourceStep.Description : string.Empty,
-                    exec.SourceStep != null ? exec.SourceStep.Device : string.Empty,
+                    exec.SourceStep != null ? exec.SourceStep.Target : string.Empty,
                     exec.SourceStep != null ? exec.SourceStep.Command : string.Empty,
                     JsonConvert.SerializeObject(exec.SourceStep != null ? exec.SourceStep.Parameters : null),
                     JsonConvert.SerializeObject(exec.SourceStep != null ? exec.SourceStep.ExpectedResults : null),
@@ -433,10 +435,10 @@ namespace ZL.WorkflowLib.Workflow
                         : new StepContext(model, linked.Token);
 
                     DeviceConfig devConf;
-                    if (!DeviceServices.Config.Devices.TryGetValue(step.Device, out devConf))
-                        throw new Exception("Device not found: " + step.Device);
+                    if (!DeviceServices.Devices.TryGetValue(step.Target, out devConf))
+                        throw new Exception("Device not found: " + step.Target);
 
-                    var execResult = DeviceServices.Factory.UseDevice(step.Device, devConf, dev => dev.Execute(step, stepCtx));
+                    var execResult = DeviceServices.Factory.UseDevice(step.Target, devConf, dev => dev.Execute(step, stepCtx));
 
                     pooledResult.Success = execResult.Success;
                     pooledResult.Message = execResult.Message;
@@ -486,7 +488,8 @@ namespace ZL.WorkflowLib.Workflow
 
             try
             {
-                new SubFlowExecutor().RunSubFlow(data.CurrentStepConfig, data, data.CurrentStepConfig);
+                // TODO 需要确认逻辑是否正确？？？
+                new SubFlowExecutor().RunInlineSubFlow(data.CurrentStepConfig, data, data.CurrentStepConfig);
             }
             catch (Exception ex)
             {
@@ -530,7 +533,8 @@ namespace ZL.WorkflowLib.Workflow
                 UiEventBus.PublishLog($"[SubFlowRef] 执行子流程引用 {data.CurrentStepConfig.Ref} (from {data.CurrentStepConfig.Name})");
                 try
                 {
-                    new SubFlowExecutor().RunSubFlow(subDef, data, data.CurrentStepConfig);
+                    // TODO 需要确认逻辑是否正确？？？
+                    new SubFlowExecutor().RunInlineSubFlow(subDef, data, data.CurrentStepConfig);
                 }
                 catch (Exception ex)
                 {
@@ -593,6 +597,8 @@ namespace ZL.WorkflowLib.Workflow
         {
             var data = (FlowData)context.Workflow.Data;
 
+            Dbg.WfDbg(context, "Transition", $"LastSuccess={data.LastSuccess}");
+
             string sourceName = StepConfig != null ? StepConfig.Name : data.Current;
             string nextName;
             int? nextId;
@@ -631,7 +637,7 @@ namespace ZL.WorkflowLib.Workflow
             if (nextId.HasValue)
             {
                 data.Current = nextName;
-                return ExecutionResult.Next(nextId.Value);
+                return ExecutionResult.Outcome(nextId.Value);
             }
 
             data.Current = null;
@@ -692,14 +698,14 @@ namespace ZL.WorkflowLib.Workflow
                             var runCtx = baseContext.CloneWithCancellation(linked.Token);
 
                             DeviceConfig devConf;
-                            if (!DeviceServices.Config.Devices.TryGetValue(deviceName, out devConf))
+                            if (!DeviceServices.Devices.TryGetValue(deviceName, out devConf))
                                 throw new Exception("Device not found: " + deviceName);
 
                             var execStep = new StepConfig
                             {
                                 Name = $"{deviceName}:{command}",
                                 Description = string.Empty,
-                                Device = deviceName,
+                                Target = deviceName,
                                 Command = command,
                                 Parameters = parameters != null
                                     ? new Dictionary<string, object>(parameters)

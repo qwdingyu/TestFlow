@@ -7,14 +7,14 @@ using ZL.DeviceLib.Models;
 namespace ZL.WorkflowLib.Engine
 {
     /// <summary>
-    /// <para>统一封装期望值判定逻辑，保证主流程与子流程编排器复用同一套实现。</para>
+    /// <para>统一封装期望值判定逻辑，保证主流程与子流程复用同一套实现。</para>
     /// <para>该类型仅承担“对比 + 日志”职责，便于未来在不同上下文复用。</para>
     /// </summary>
     internal static class ExpectedResultEvaluator
     {
         /// <summary>
-        /// <para>针对对象池中的 <see cref="StepResult"/> 执行期望值判定。</para>
-        /// <para>用于传统 WorkflowCore 步骤执行路径。</para>
+        /// <para>针对子流程执行器返回的 <see cref="Workflow.OrchTaskResult"/> 执行期望值判定。</para>
+        /// <para>确保顺序子流程产出的结果与期望一致，并将判定信息写入日志。</para>
         /// </summary>
         /// <param name="step">步骤配置，包含期望值与参数。</param>
         /// <param name="pooledResult">设备执行后的原始输出。</param>
@@ -33,14 +33,6 @@ namespace ZL.WorkflowLib.Engine
                 pooledResult.Message = AppendMessage(pooledResult.Message, mismatchReason);
             }
         }
-
-        /// <summary>
-        /// <para>针对编排器返回的 <see cref="Workflow.OrchTaskResult"/> 执行期望值判定。</para>
-        /// <para>确保顺序编排器产出的结果与期望一致，并将判定信息写入日志。</para>
-        /// </summary>
-        /// <param name="step">实际执行的步骤配置。</param>
-        /// <param name="taskResult">编排器返回的任务结果。</param>
-        /// <param name="taskId">任务 Id，用于在步骤名称缺失时补充日志上下文。</param>
         public static void ApplyToTaskResult(StepConfig step, Workflow.OrchTaskResult taskResult, string taskId, bool logSuccess = true, bool logFailure = true)
         {
             if (step == null || taskResult == null)

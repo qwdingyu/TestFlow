@@ -4,7 +4,7 @@
 		{
 			"Name": "power_on",
 			"Description": "上电",
-			"Device": "power_supply_1",
+			"Target": "power_supply_1",
 			"Command": "set_voltage",
 			"Parameters": { "voltage": 12.0 },
 			"ExpectedResults": {
@@ -20,7 +20,7 @@
 		{
 			"Name": "start_env",
 			"Description": "启动座椅 ECU 运行环境报文 (#1~#4)",
-			"Device": "can_adapter_1",
+			"Target": "can_adapter_1",
 			"Command": "start_seat_env",
 			"Parameters": {},
 			"ExpectedResults": {},
@@ -31,7 +31,7 @@
 		{
 			"Name": "heater_low",
 			"Description": "全座椅加热低档",
-			"Device": "can_adapter_1",
+			"Target": "can_adapter_1",
 			"Command": "seat_heater_control",
 			"Parameters": { "level": "low" },
 			"ExpectedResults": {},
@@ -43,7 +43,7 @@
 		{
 			"Name": "heater_mid",
 			"Description": "全座椅加热中档",
-			"Device": "can_adapter_1",
+			"Target": "can_adapter_1",
 			"Command": "seat_heater_control",
 			"Parameters": { "level": "mid" },
 			"ExpectedResults": {},
@@ -55,7 +55,7 @@
 		{
 			"Name": "heater_high",
 			"Description": "全座椅加热高档",
-			"Device": "can_adapter_1",
+			"Target": "can_adapter_1",
 			"Command": "seat_heater_control",
 			"Parameters": { "level": "high" },
 			"ExpectedResults": {},
@@ -67,7 +67,7 @@
 		{
 			"Name": "heater_off",
 			"Description": "全座椅加热关闭",
-			"Device": "can_adapter_1",
+			"Target": "can_adapter_1",
 			"Command": "seat_heater_control",
 			"Parameters": { "level": "off" },
 			"ExpectedResults": {},
@@ -79,7 +79,7 @@
 		{
 			"Name": "stop_env",
 			"Description": "停止座椅 ECU 运行环境报文",
-			"Device": "can_adapter_1",
+			"Target": "can_adapter_1",
 			"Command": "stop_seat_env",
 			"Parameters": {},
 			"ExpectedResults": {},
@@ -90,7 +90,7 @@
 		{
 			"Name": "power_off",
 			"Description": "下电",
-			"Device": "power_supply_1",
+			"Target": "power_supply_1",
 			"Command": "set_voltage",
 			"Parameters": { "voltage": 0.0 },
 			"ExpectedResults": {
@@ -106,7 +106,7 @@
 		{
 			"Name": "end_test",
 			"Description": "测试结束",
-			"Device": "system",
+			"Target": "system",
 			"Command": "shutdown",
 			"Parameters": {},
 			"ExpectedResults": {},

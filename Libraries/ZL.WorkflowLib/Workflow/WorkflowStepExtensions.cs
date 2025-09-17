@@ -17,18 +17,14 @@ namespace ZL.WorkflowLib.Workflow
             if (builder == null)
                 throw new ArgumentNullException(nameof(builder));
 
-            builder.Input(step => step.RetryAttempts, data =>
-            {
-                var normalized = RetryOptions.Normalize(selector != null ? selector(data) : null);
-                return normalized.Attempts;
-            });
+            builder.Input(
+                step => step.RetryAttempts,
+                data => RetryOptions.Normalize(selector != null ? selector(data) : null).Attempts
+            );
 
-            builder.Input(step => step.RetryDelayMs, data =>
-            {
-                var normalized = RetryOptions.Normalize(selector != null ? selector(data) : null);
-                return normalized.DelayMs;
-            });
-
+            builder.Input(step => step.RetryDelayMs,
+                data => RetryOptions.Normalize(selector != null ? selector(data) : null).DelayMs
+            );
             return builder;
         }
 
@@ -40,17 +36,14 @@ namespace ZL.WorkflowLib.Workflow
             if (builder == null)
                 throw new ArgumentNullException(nameof(builder));
 
-            builder.Input(step => step.PreDelayMs, data =>
-            {
-                var normalized = DelayOptions.Normalize(selector != null ? selector(data) : null);
-                return normalized.PreDelayMs;
-            });
+            builder.Input(
+                step => step.PreDelayMs,
+                data => DelayOptions.Normalize(selector != null ? selector(data) : null).PreDelayMs
+            );
 
-            builder.Input(step => step.PostDelayMs, data =>
-            {
-                var normalized = DelayOptions.Normalize(selector != null ? selector(data) : null);
-                return normalized.PostDelayMs;
-            });
+            builder.Input(step => step.PostDelayMs, 
+                data => DelayOptions.Normalize(selector != null ? selector(data) : null).PostDelayMs
+            );
 
             return builder;
         }

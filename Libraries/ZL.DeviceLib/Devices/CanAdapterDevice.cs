@@ -128,7 +128,7 @@ namespace ZL.DeviceLib.Devices
             var outputs = new Dictionary<string, object>();
             try
             {
-                LogHelper.Info($"--当前测试步骤【{step.Name}】设备【{step.Device}】, 参数【{JsonConvert.SerializeObject(step.Parameters)}】");
+                LogHelper.Info($"--当前测试步骤【{step.Name}】设备【{step.Target}】, 参数【{JsonConvert.SerializeObject(step.Parameters)}】");
 
                 string id = step.Parameters.ContainsKey("id") ? step.Parameters["id"].ToString() : "0x000";
                 byte[] data = step.Parameters.ContainsKey("data")
@@ -207,36 +207,36 @@ namespace ZL.DeviceLib.Devices
                     }, ctx.Cancellation);
 
                     // 2) 并发任务：电流采样
-                    var pmTask = Task.Run(() =>
+                    var pmTask = Task.Run((Func<Dictionary<string, object>>)(() =>
                     {
-                        var devConf = DeviceServices.Config.Devices["power_meter_1"];
-                        return DeviceServices.Factory.UseDevice("power_meter_1", devConf, dev =>
+                        var devConf = DeviceServices.Devices["power_meter_1"];
+                        return DeviceServices.Factory.UseDevice("power_meter_1", devConf, (Func<IDevice, Dictionary<string, object>>)(dev =>
                         {
                             var sc = new StepConfig
                             {
-                                Device = "power_meter_1",
+                                Target = "power_meter_1",
                                 Command = "measure_current",
                                 Parameters = new Dictionary<string, object> { { "duration_ms", measureMs } }
                             };
                             return dev.Execute(sc, ctx).Outputs;
-                        });
-                    }, ctx.Cancellation);
+                        }));
+                    }), ctx.Cancellation);
 
                     // 3) 并发任务：噪音采样
-                    var micTask = Task.Run(() =>
+                    var micTask = Task.Run((Func<Dictionary<string, object>>)(() =>
                     {
-                        var devConf = DeviceServices.Config.Devices["mic_1"];
-                        return DeviceServices.Factory.UseDevice("mic_1", devConf, dev =>
+                        var devConf = DeviceServices.Devices["mic_1"];
+                        return DeviceServices.Factory.UseDevice("mic_1", devConf, (Func<IDevice, Dictionary<string, object>>)(dev =>
                         {
                             var sc = new StepConfig
                             {
-                                Device = "mic_1",
+                                Target = "mic_1",
                                 Command = "record_noise",
                                 Parameters = new Dictionary<string, object> { { "duration_ms", measureMs } }
                             };
                             return dev.Execute(sc, ctx).Outputs;
-                        });
-                    }, ctx.Cancellation);
+                        }));
+                    }), ctx.Cancellation);
 
                     Task.WaitAll(new Task[] { ctrlTask, pmTask, micTask }, ctx.Cancellation);
 

@@ -64,7 +64,6 @@ namespace ZL.WorkflowLib.Engine
             {
                 Name = source.Name,
                 Description = source.Description,
-                Device = source.Device,
                 Target = source.Target,
                 Command = source.Command,
                 TimeoutMs = source.TimeoutMs,

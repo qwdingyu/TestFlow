@@ -11,7 +11,7 @@ namespace ZL.WorkflowLib.Workflow.Flows
     ///     子流程定义集中营：将原本分散在 JSON 中的定义迁移到代码里，
     ///     统一由此处提供注册方法与 WorkflowCore 工作流实例，便于主流程直接调用。
     /// </summary>
-    internal static class SubflowDefinitionCatalog
+    public static class SubflowDefinitionCatalog
     {
         /// <summary>
         ///     将所有内置子流程注册到 <see cref="SubflowRegistry"/> 中，供运行期查询。
@@ -25,24 +25,23 @@ namespace ZL.WorkflowLib.Workflow.Flows
             registry.Register(BuildEcuIvCheck());
             registry.Register(BuildEcuPowerOnCheck());
         }
-
         /// <summary>
-        ///     按照当前注册表内容创建 WorkflowCore 工作流，供 <see cref="SubFlowExecutor"/> 启动。
+        /// 按照当前注册表内容创建 WorkflowCore 工作流，供 <see cref="SubFlowExecutor"/> 启动。
         /// </summary>
-        public static void RegisterWorkflows(IWorkflowHost host, SubflowRegistry registry)
+        public static void RegisterWorkflows(IWorkflowHost host, SubflowRegistry subflowRegistry)
         {
-            if (host == null)
-                throw new ArgumentNullException(nameof(host));
-            if (registry == null)
-                throw new ArgumentNullException(nameof(registry));
+            if (host == null) throw new ArgumentNullException(nameof(host));
+            if (subflowRegistry == null) throw new ArgumentNullException(nameof(subflowRegistry));
 
-            foreach (var subflow in registry.GetAll())
+            IWorkflowRegistry wfRegistry = host.Registry;   // 关键：用 Host 的 Registry
+
+            foreach (var subflow in subflowRegistry.GetAll())
             {
-                host.RegisterWorkflow(new JsonSubFlowWorkflow(subflow));
+                wfRegistry.RegisterWorkflow(new JsonSubFlowWorkflow(subflow));
+
                 SubFlowExecutor.MarkWorkflowRegistered(JsonSubFlowWorkflow.BuildWorkflowId(subflow.Name));
             }
         }
-
         private static StepConfig BuildEcuCanCheck()
         {
             var def = new StepConfig
@@ -57,7 +56,7 @@ namespace ZL.WorkflowLib.Workflow.Flows
             {
                 Name = "唤醒报文",
                 Description = "唤醒报文",
-                Device = "can_adapter_1",
+                Target = "can_adapter_1",
                 Command = "send_and_receive",
                 Parameters = new Dictionary<string, object>(),
                 ExpectedResults = new Dictionary<string, object>()
@@ -69,7 +68,7 @@ namespace ZL.WorkflowLib.Workflow.Flows
             {
                 Name = "主驾按摩",
                 Description = "主驾按摩",
-                Device = "can_adapter_1",
+                Target = "can_adapter_1",
                 Command = "send_and_receive",
                 Parameters = new Dictionary<string, object>(),
                 ExpectedResults = new Dictionary<string, object>()
@@ -94,7 +93,7 @@ namespace ZL.WorkflowLib.Workflow.Flows
             {
                 Name = "apply_resistance",
                 Description = "设定电阻",
-                Device = "resistor_box",
+                Target = "resistor_box",
                 Command = "set_resistance",
                 Parameters = new Dictionary<string, object>(),
                 ExpectedResults = new Dictionary<string, object>()
@@ -109,7 +108,7 @@ namespace ZL.WorkflowLib.Workflow.Flows
             {
                 Name = "measure_current",
                 Description = "测量电流",
-                Device = "current_meter_1",
+                Target = "current_meter_1",
                 Command = "measure",
                 Parameters = new Dictionary<string, object>(),
                 ExpectedResults = new Dictionary<string, object>()
@@ -125,7 +124,7 @@ namespace ZL.WorkflowLib.Workflow.Flows
             {
                 Name = "measure_voltage",
                 Description = "测量电压",
-                Device = "voltmeter_1",
+                Target = "voltmeter_1",
                 Command = "measure",
                 Parameters = new Dictionary<string, object>(),
                 ExpectedResults = new Dictionary<string, object>()
@@ -154,7 +153,7 @@ namespace ZL.WorkflowLib.Workflow.Flows
             {
                 Name = "set_voltage",
                 Description = "设置电流",
-                Device = "power_supply_1",
+                Target = "power_supply_1",
                 Command = "set_voltage",
                 Parameters = new Dictionary<string, object>(),
                 ExpectedResults = new Dictionary<string, object>()
@@ -169,7 +168,7 @@ namespace ZL.WorkflowLib.Workflow.Flows
             {
                 Name = "measure_current",
                 Description = "设置电阻",
-                Device = "current_meter_1",
+                Target = "current_meter_1",
                 Command = "measure",
                 Parameters = new Dictionary<string, object>(),
                 ExpectedResults = new Dictionary<string, object>()
@@ -237,7 +236,6 @@ namespace ZL.WorkflowLib.Workflow.Flows
             {
                 Name = source.Name,
                 Description = source.Description,
-                Device = source.Device,
                 Target = source.Target,
                 Command = source.Command,
                 Parameters = CloneDictionary(source.Parameters),

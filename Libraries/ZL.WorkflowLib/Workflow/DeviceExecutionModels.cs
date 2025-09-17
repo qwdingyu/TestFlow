@@ -84,7 +84,7 @@ namespace ZL.WorkflowLib.Workflow
     /// <summary>
     /// 描述瑞士军刀设备执行配置的实体，负责解析参数字典并提供阶段性过滤能力。
     /// </summary>
-    internal class DeviceExecSpec
+    public class DeviceExecSpec
     {
         public ExecMode Mode { get; set; }
         public AggregationMode Aggregation { get; set; }
@@ -285,7 +285,7 @@ namespace ZL.WorkflowLib.Workflow
         }
     }
 
-    internal class ExtraDeviceSpec
+    public class ExtraDeviceSpec
     {
         public string Device { get; set; }
         public string Command { get; set; }
@@ -297,33 +297,33 @@ namespace ZL.WorkflowLib.Workflow
         public Dictionary<string, object> Parameters { get; set; }
     }
 
-    internal class RetrySpec
+    public class RetrySpec
     {
         public int Attempts { get; set; }
         public int DelayMs { get; set; }
     }
 
-    internal enum ExecMode
+    public enum ExecMode
     {
         MainFirst,
         ExtrasFirst,
         Parallel
     }
 
-    internal enum AggregationMode
+    public enum AggregationMode
     {
         Namespace,
         Flat
     }
 
-    internal enum ExtraStart
+    public enum ExtraStart
     {
         Before,
         WithMain,
         After
     }
 
-    internal enum ExtraJoin
+    public enum ExtraJoin
     {
         Wait,
         Forget

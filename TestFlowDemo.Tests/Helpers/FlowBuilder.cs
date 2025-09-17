@@ -32,7 +32,7 @@ namespace TestFlowDemo.Tests.Helpers
                 {
                     Name = "power_on",
                     Description = "模拟上电动作",
-                    Device = "power",
+                    Target = "power",
                     Command = "set_output",
                     Parameters = new Dictionary<string, object>
                     {
@@ -49,7 +49,7 @@ namespace TestFlowDemo.Tests.Helpers
                 {
                     Name = "heater_low",
                     Description = "模拟座椅加热低档",
-                    Device = "heater",
+                    Target = "heater",
                     Command = "set_level",
                     Parameters = new Dictionary<string, object> { ["level"] = "low" },
                     ExpectedResults = new Dictionary<string, object>(),
@@ -62,7 +62,7 @@ namespace TestFlowDemo.Tests.Helpers
                 {
                     Name = "heater_high",
                     Description = "模拟座椅加热高档",
-                    Device = "heater",
+                    Target = "heater",
                     Command = "set_level",
                     Parameters = new Dictionary<string, object> { ["level"] = "high" },
                     ExpectedResults = new Dictionary<string, object>(),
@@ -75,7 +75,7 @@ namespace TestFlowDemo.Tests.Helpers
                 {
                     Name = "heater_off",
                     Description = "关闭加热输出",
-                    Device = "heater",
+                    Target = "heater",
                     Command = "shutdown",
                     Parameters = new Dictionary<string, object>(),
                     ExpectedResults = new Dictionary<string, object>(),
@@ -88,7 +88,7 @@ namespace TestFlowDemo.Tests.Helpers
                 {
                     Name = "power_off",
                     Description = "断电收尾",
-                    Device = "power",
+                    Target = "power",
                     Command = "shutdown",
                     Parameters = new Dictionary<string, object>(),
                     ExpectedResults = new Dictionary<string, object>(),
@@ -145,7 +145,7 @@ namespace TestFlowDemo.Tests.Helpers
             {
                 Name = src.Name,
                 Description = src.Description,
-                Device = src.Device,
+                Target = src.Target,
                 Target = src.Target,
                 Command = src.Command,
                 Parameters = src.Parameters != null ? new Dictionary<string, object>(src.Parameters) : null,
