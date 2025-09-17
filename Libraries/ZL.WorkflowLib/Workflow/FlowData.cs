@@ -12,7 +12,10 @@ namespace ZL.WorkflowLib.Workflow
         public string Sn { get; set; }
         public bool LastSuccess { get; set; }
         public string Current { get; set; }
-        public bool Done { get; set; }
+        /// <summary>
+        /// 标记当前主流程是否已经完成，防止重复执行收尾逻辑。
+        /// </summary>
+        public bool WorkflowCompleted { get; set; }
         public long SessionId { get; set; }
         public CancellationToken Cancellation { get; set; }
 

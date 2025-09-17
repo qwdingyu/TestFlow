@@ -186,8 +186,11 @@ namespace ZL.WorkflowLib.Workflow
                 SessionId = source.SessionId,
                 Cancellation = source.Cancellation,
                 LastSuccess = true,
-                Done = false,
-                Current = null
+                WorkflowCompleted = false,
+                Current = null,
+                CurrentStepConfig = null,
+                CurrentStepKind = StepExecutionKind.None,
+                CurrentExecution = null
             };
         }
 

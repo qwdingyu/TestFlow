@@ -19,60 +19,79 @@ namespace ZL.WorkflowLib.Workflow
     /// </summary>
     public class InitStep : StepBody
     {
+        /// <summary>
+        /// Workflow 构建阶段解析出的首个可执行步骤 Id，用于直接跳转到起点。
+        /// </summary>
+        public int? FirstStepId { get; set; }
+
+        /// <summary>
+        /// 首个步骤的名称，便于初始化日志展示。
+        /// </summary>
+        public string FirstStepName { get; set; }
+
         public override ExecutionResult Run(IStepExecutionContext context)
         {
             var data = (FlowData)context.Workflow.Data;
-            data.Done = false;
+            data.WorkflowCompleted = false;
             data.LastSuccess = true;
             data.Model = DeviceServices.Config.Model;
+            data.Current = null;
             data.CurrentStepConfig = null;
             data.CurrentStepKind = StepExecutionKind.None;
             data.CurrentExecution = null;
 
-            foreach (var s in DeviceServices.Config.TestSteps)
+            data.SessionId = DeviceServices.Db.StartTestSession(data.Model, data.Sn);
+
+            var startName = string.IsNullOrWhiteSpace(FirstStepName) ? "(无)" : FirstStepName;
+            UiEventBus.PublishLog($"[Init] 产品={data.Model}, SN={data.Sn}, SessionId={data.SessionId}, 起始步骤={startName}");
+
+            if (FirstStepId.HasValue)
             {
-                if (s.DependsOn == null || s.DependsOn.Count == 0)
-                {
-                    data.Current = s.Name;
-                    break;
-                }
+                data.Current = FirstStepName;
+                return ExecutionResult.Next(FirstStepId.Value);
             }
 
-            if (string.IsNullOrEmpty(data.Current))
-                data.Done = true;
+            if (!string.IsNullOrWhiteSpace(FirstStepName))
+            {
+                data.Current = FirstStepName;
+                return ExecutionResult.Next();
+            }
 
-            data.SessionId = DeviceServices.Db.StartTestSession(data.Model, data.Sn);
-            UiEventBus.PublishLog($"[Init] 产品={data.Model}, SN={data.Sn}, SessionId={data.SessionId}, 起始步骤={data.Current}");
+            data.Current = null;
+            WorkflowCompletionHelper.CompleteWorkflow(data);
             return ExecutionResult.Next();
         }
     }
 
     /// <summary>
-    /// 解析当前步骤的基础信息，判断后续需要走的执行分支（设备步骤/子流程/引用等）。
+    /// 根据构建器注入的步骤定义初始化运行期上下文，决定后续执行分支。
     /// </summary>
     public class ResolveStepContextStep : StepBody
     {
+        /// <summary>
+        /// Workflow 构建阶段注入的步骤定义，避免运行时再次查表。
+        /// </summary>
+        public StepConfig StepConfig { get; set; }
+
         public override ExecutionResult Run(IStepExecutionContext context)
         {
             var data = (FlowData)context.Workflow.Data;
-            data.CurrentStepConfig = null;
-            data.CurrentExecution = null;
-            data.CurrentStepKind = StepExecutionKind.None;
-
-            if (data.Done || string.IsNullOrEmpty(data.Current))
+            if (data.WorkflowCompleted)
                 return ExecutionResult.Next();
 
-            var stepCfg = DeviceServices.Config.TestSteps.Find(x => x.Name == data.Current);
-            data.CurrentStepConfig = stepCfg;
+            data.CurrentExecution = null;
+            data.CurrentStepConfig = StepConfig;
+            data.Current = StepConfig != null ? StepConfig.Name : null;
 
-            if (stepCfg == null)
+            if (StepConfig == null)
             {
                 data.LastSuccess = false;
-                UiEventBus.PublishLog($"[Resolve] 未找到步骤配置: {data.Current}");
+                UiEventBus.PublishLog("[Resolve] 当前步骤配置为空，无法继续执行");
+                data.CurrentStepKind = StepExecutionKind.None;
                 return ExecutionResult.Next();
             }
 
-            var type = string.IsNullOrWhiteSpace(stepCfg.Type) ? "Normal" : stepCfg.Type.Trim();
+            var type = string.IsNullOrWhiteSpace(StepConfig.Type) ? "Normal" : StepConfig.Type.Trim();
             if (string.Equals(type, "SubFlow", StringComparison.OrdinalIgnoreCase))
             {
                 data.CurrentStepKind = StepExecutionKind.SubFlow;
@@ -98,7 +117,7 @@ namespace ZL.WorkflowLib.Workflow
         public override ExecutionResult Run(IStepExecutionContext context)
         {
             var data = (FlowData)context.Workflow.Data;
-            if (data.Done || data.CurrentStepKind != StepExecutionKind.Device)
+            if (data.WorkflowCompleted || data.CurrentStepKind != StepExecutionKind.Device)
                 return ExecutionResult.Next();
 
             if (data.CurrentStepConfig == null)
@@ -140,7 +159,7 @@ namespace ZL.WorkflowLib.Workflow
         public override ExecutionResult Run(IStepExecutionContext context)
         {
             var data = (FlowData)context.Workflow.Data;
-            if (data.Done || data.CurrentExecution == null)
+            if (data.WorkflowCompleted || data.CurrentExecution == null)
                 return ExecutionResult.Next();
 
             if (string.IsNullOrWhiteSpace(DeviceName) && data.CurrentExecution.ExecutableStep != null)
@@ -172,7 +191,7 @@ namespace ZL.WorkflowLib.Workflow
         {
             var data = (FlowData)context.Workflow.Data;
             var exec = data.CurrentExecution;
-            if (data.Done || exec == null)
+            if (data.WorkflowCompleted || exec == null)
                 return ExecutionResult.Next();
 
             try
@@ -240,7 +259,7 @@ namespace ZL.WorkflowLib.Workflow
         {
             var data = (FlowData)context.Workflow.Data;
             var exec = data.CurrentExecution;
-            if (data.Done || exec == null)
+            if (data.WorkflowCompleted || exec == null)
                 return ExecutionResult.Next();
 
             var extras = exec.Specification.SelectExtras(Phase).ToList();
@@ -296,7 +315,7 @@ namespace ZL.WorkflowLib.Workflow
         {
             var data = (FlowData)context.Workflow.Data;
             var exec = data.CurrentExecution;
-            if (data.Done || data.CurrentStepKind != StepExecutionKind.Device || exec == null)
+            if (data.WorkflowCompleted || data.CurrentStepKind != StepExecutionKind.Device || exec == null)
                 return ExecutionResult.Next();
 
             var pooledResult = StepResultPool.Instance.Get();
@@ -455,7 +474,7 @@ namespace ZL.WorkflowLib.Workflow
         public override ExecutionResult Run(IStepExecutionContext context)
         {
             var data = (FlowData)context.Workflow.Data;
-            if (data.Done || data.CurrentStepKind != StepExecutionKind.SubFlow)
+            if (data.WorkflowCompleted || data.CurrentStepKind != StepExecutionKind.SubFlow)
                 return ExecutionResult.Next();
 
             if (data.CurrentStepConfig == null)
@@ -488,7 +507,7 @@ namespace ZL.WorkflowLib.Workflow
         public override ExecutionResult Run(IStepExecutionContext context)
         {
             var data = (FlowData)context.Workflow.Data;
-            if (data.Done || data.CurrentStepKind != StepExecutionKind.SubFlowReference)
+            if (data.WorkflowCompleted || data.CurrentStepKind != StepExecutionKind.SubFlowReference)
                 return ExecutionResult.Next();
 
             if (data.CurrentStepConfig == null)
@@ -531,48 +550,112 @@ namespace ZL.WorkflowLib.Workflow
     }
 
     /// <summary>
-    /// 根据上一步结果选择下一步，流程结束时写入最终状态。
+    /// 处理下一跳调度：根据执行结果返回目标 StepId，若不存在下一步则结束流程。
     /// </summary>
-    public class RouteStep : StepBody
+    public class TransitionStep : StepBody
     {
+        /// <summary>
+        /// 当前步骤的静态定义，主要用于日志输出。
+        /// </summary>
+        public StepConfig StepConfig { get; set; }
+
+        /// <summary>
+        /// 成功分支对应的 StepId（若为空则表示流程终止）。
+        /// </summary>
+        public int? SuccessStepId { get; set; }
+
+        /// <summary>
+        /// 失败分支对应的 StepId（若为空则表示流程终止）。
+        /// </summary>
+        public int? FailureStepId { get; set; }
+
+        /// <summary>
+        /// 为日志准备的成功分支名称，便于定位配置问题。
+        /// </summary>
+        public string SuccessStepName { get; set; }
+
+        /// <summary>
+        /// 为日志准备的失败分支名称。
+        /// </summary>
+        public string FailureStepName { get; set; }
+
+        /// <summary>
+        /// 成功分支目标是否真实存在，用于打印缺失提示。
+        /// </summary>
+        public bool SuccessTargetExists { get; set; }
+
+        /// <summary>
+        /// 失败分支目标是否真实存在。
+        /// </summary>
+        public bool FailureTargetExists { get; set; }
+
         public override ExecutionResult Run(IStepExecutionContext context)
         {
             var data = (FlowData)context.Workflow.Data;
-            if (data.Done || string.IsNullOrEmpty(data.Current))
-                return ExecutionResult.Next();
 
-            var stepCfg = data.CurrentStepConfig ?? DeviceServices.Config.TestSteps.Find(x => x.Name == data.Current);
-            if (stepCfg == null)
+            string sourceName = StepConfig != null ? StepConfig.Name : data.Current;
+            string nextName;
+            int? nextId;
+            bool nextExists;
+
+            if (data.LastSuccess)
             {
-                data.Done = true;
-                UiEventBus.PublishLog("[Route] 找不到当前步骤配置，强制结束");
+                nextName = string.IsNullOrWhiteSpace(SuccessStepName) && StepConfig != null
+                    ? StepConfig.OnSuccess
+                    : SuccessStepName;
+                nextId = SuccessStepId;
+                nextExists = SuccessTargetExists || string.IsNullOrWhiteSpace(nextName);
             }
             else
             {
-                string next = data.LastSuccess ? stepCfg.OnSuccess : stepCfg.OnFailure;
-                UiEventBus.PublishLog($"[Route] {stepCfg.Name} -> {(string.IsNullOrEmpty(next) ? "(结束)" : next)} | LastSuccess={data.LastSuccess}");
+                nextName = string.IsNullOrWhiteSpace(FailureStepName) && StepConfig != null
+                    ? StepConfig.OnFailure
+                    : FailureStepName;
+                nextId = FailureStepId;
+                nextExists = FailureTargetExists || string.IsNullOrWhiteSpace(nextName);
+            }
 
-                if (string.IsNullOrEmpty(next))
-                {
-                    data.Done = true;
-                }
-                else
-                {
-                    data.Current = next;
-                }
+            if (!nextExists && !string.IsNullOrWhiteSpace(nextName))
+            {
+                UiEventBus.PublishLog($"[Route] {sourceName} -> {nextName} 未找到对应定义，终止流程 | LastSuccess={data.LastSuccess}");
+            }
+            else
+            {
+                UiEventBus.PublishLog($"[Route] {sourceName} -> {(string.IsNullOrEmpty(nextName) ? "(结束)" : nextName)} | LastSuccess={data.LastSuccess}");
             }
 
             data.CurrentStepConfig = null;
             data.CurrentExecution = null;
             data.CurrentStepKind = StepExecutionKind.None;
 
-            if (data.Done)
+            if (nextId.HasValue)
             {
-                DeviceServices.Db.FinishTestSession(data.SessionId, data.LastSuccess ? 1 : 0);
-                UiEventBus.PublishCompleted(data.SessionId.ToString(), data.Model);
+                data.Current = nextName;
+                return ExecutionResult.Next(nextId.Value);
             }
 
+            data.Current = null;
+            WorkflowCompletionHelper.CompleteWorkflow(data);
             return ExecutionResult.Next();
+        }
+    }
+
+    /// <summary>
+    /// 提供统一的流程收尾逻辑，确保 FinishTestSession 与 UI 通知只触发一次。
+    /// </summary>
+    internal static class WorkflowCompletionHelper
+    {
+        public static void CompleteWorkflow(FlowData data)
+        {
+            if (data == null)
+                return;
+
+            if (data.WorkflowCompleted)
+                return;
+
+            data.WorkflowCompleted = true;
+            DeviceServices.Db.FinishTestSession(data.SessionId, data.LastSuccess ? 1 : 0);
+            UiEventBus.PublishCompleted(data.SessionId.ToString(), data.Model);
         }
     }
 
