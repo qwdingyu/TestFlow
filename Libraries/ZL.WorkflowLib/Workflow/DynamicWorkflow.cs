@@ -71,8 +71,9 @@ namespace ZL.WorkflowLib.Workflow
                 init.Input<int?>(s => s.FirstStepId, data => stepId);
                 init.Input<string>(s => s.FirstStepName, data => stepName);
 
+                // 仅保留 Outcome 路由
                 AddOutcomeMapping(init, stepId, stepId);
-                ClearNextStep(init);
+                ClearNextStep(init); // 修复：真正清掉 init 的默认 Next
             }
             else
             {
@@ -102,15 +103,19 @@ namespace ZL.WorkflowLib.Workflow
                     var depPipe = pipelines[dep];
                     if (depPipe.EntryId.HasValue && pipe.EntryId.HasValue)
                     {
-                        // 替换为统一 AddEdge（自动去重 + 建立 Outcome 映射）
+                        // 统一 AddEdge（自动去重 + 添加 Outcome 映射）
                         AddEdge(dep, cfg.Name, depPipe, pipe, edges);
                     }
                 }
             }
 
-            // 这里通过显式清空上一节点的 NextStep，确保每次链式构建都以手动配置的跳转为准
-            ClearNextStep(previous);
-            // 5) 检查入度
+            // 4.5) 重要：去掉构建时串起来的“默认 NextStep”骨架链，避免双指针
+            foreach (var pipe in pipelines.Values)
+            {
+                ClearNextStep(pipe.Transition);
+            }
+
+            // 5) 检查入度（提示 JSON 冗余）
             foreach (var p in pipelines.Values)
             {
                 int incoming = 0;
@@ -131,6 +136,8 @@ namespace ZL.WorkflowLib.Workflow
             where TPrev : StepBody
         {
             var entry = previous.Then<ResolveStepContextStep>();
+            // 这里通过显式清空上一节点的 NextStep，确保每次链式构建都以手动配置的跳转为准
+            ClearNextStep(previous);
             entry.Input<StepConfig>(step => step.StepConfig, data => stepConfig);
 
             string type = (stepConfig != null && !string.IsNullOrWhiteSpace(stepConfig.Type))
@@ -234,7 +241,8 @@ namespace ZL.WorkflowLib.Workflow
                 UiEventBus.PublishLog("[BuildDedup] " + cfg.Name + " 成功/失败路由指向同一个节点 " + success.StepName + "，自动去重");
                 failure.StepId = null;
             }
-            // —— 新增：统一用 AddEdge 建立 Success / Failure 路由（并全局去重）
+
+            // —— 用 AddEdge 建立 Success / Failure 路由（并全局去重）
             if (success.StepId.HasValue)
             {
                 StepPipeline toPipe;
@@ -242,9 +250,7 @@ namespace ZL.WorkflowLib.Workflow
                 {
                     AddEdge(cfg.Name, success.StepName, pipeline, toPipe, edges);
                 }
-            // 成功配置完路由后再清理默认 NextStep，避免后续继续调用 Then 时出现意外跳转
-            ClearNextStep(pipeline.Transition);
-                // 保留原来的属性注入（不改动）
+                // 保留原 Input
                 pipeline.Transition.Input<int?>(s => s.SuccessStepId, data => success.StepId);
             }
 
@@ -255,7 +261,7 @@ namespace ZL.WorkflowLib.Workflow
                 {
                     AddEdge(cfg.Name, failure.StepName, pipeline, toPipe2, edges);
                 }
-                // 保留原来的属性注入（不改动）
+                // 保留原 Input
                 pipeline.Transition.Input<int?>(s => s.FailureStepId, data => failure.StepId);
             }
 
@@ -264,10 +270,16 @@ namespace ZL.WorkflowLib.Workflow
 
             pipeline.Transition.Input<string>(s => s.FailureStepName, data => failure.StepName);
             pipeline.Transition.Input<bool>(s => s.FailureTargetExists, data => failure.Exists);
+            // 成功配置完路由后再清理默认 NextStep，避免后续继续调用 Then 时出现意外跳转
+            ClearNextStep(pipeline.Transition);
         }
 
         // 统一建边 + 去重 + 真正添加 Outcome 映射
-        private static void AddEdge(string fromName, string toName, StepPipeline fromPipe, StepPipeline toPipe, HashSet<string> edges)
+        private static void AddEdge(string fromName,
+                                    string toName,
+                                    StepPipeline fromPipe,
+                                    StepPipeline toPipe,
+                                    HashSet<string> edges)
         {
             if (string.IsNullOrWhiteSpace(fromName)) return;
             if (string.IsNullOrWhiteSpace(toName)) return;
@@ -286,6 +298,9 @@ namespace ZL.WorkflowLib.Workflow
                 UiEventBus.PublishLog("[BuildDedup] 跳过重复边 " + fromName + " -> " + toName);
             }
         }
+
+        // ===== 其余辅助方法保持不变（仅修正 ClearNextStep 以适配 NextStepId） =====
+
         private static StepPipeline ResolveFirstPipeline(IList<StepConfig> steps, IDictionary<string, StepPipeline> pipelines)
         {
             if (steps == null || pipelines == null)
@@ -456,3 +471,4 @@ namespace ZL.WorkflowLib.Workflow
         }
     }
 }
+
