@@ -78,7 +78,7 @@ namespace Cli.Commands
             WorkflowServices.ParamInjector.PreloadAll();
             WorkflowServices.Subflows = new SubflowRegistry();
             SubflowDefinitionCatalog.Initialize(WorkflowServices.Subflows);
-            DeviceServices.Factory.LoadPlugins(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins"));
+            //DeviceServices.Factory.LoadPlugins(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins"));
 
             UiEventBus.Log += delegate(string msg) { LogHelper.Info(DateTime.Now.ToString("u") + " " + msg); };
             UiEventBus.WorkflowCompleted += delegate(string sid, string m) { LogHelper.Info("[Completed] SessionId=" + sid + ", Model=" + m); };

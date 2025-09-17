@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Threading;
-using ZL.DeviceLib.Models;
 using ZL.DeviceLib.Devices.Plugin;
+using ZL.DeviceLib.Models;
 
 namespace ZL.DeviceLib.Devices
 {
@@ -18,7 +19,7 @@ namespace ZL.DeviceLib.Devices
         private readonly ConcurrentDictionary<string, Func<DeviceFactory, DeviceConfig, IDevice>> _registry =
             new ConcurrentDictionary<string, Func<DeviceFactory, DeviceConfig, IDevice>>(StringComparer.OrdinalIgnoreCase);
 
-        public DeviceFactory(string dbPath, string reportDir)
+        public DeviceFactory(string dbPath, string reportDir, string pluginsDir = null)
         {
             _dbPath = dbPath;
             _reportDir = reportDir;
@@ -36,8 +37,26 @@ namespace ZL.DeviceLib.Devices
             Register("resistor_box", (f, cfg) => new ResistorBoxDevice(cfg));
             Register("voltmeter", (f, cfg) => new VoltmeterDevice(cfg));
             // 通用动作提供者（语义泛化）
-            Register("http", (f, cfg) => new ZL.DeviceLib.Devices.Actions.HttpActionDevice(cfg));
-            Register("shell", (f, cfg) => new ZL.DeviceLib.Devices.Actions.ShellActionDevice(cfg));
+            Register("http", (f, cfg) => new Actions.HttpActionDevice(cfg));
+            Register("shell", (f, cfg) => new Actions.ShellActionDevice(cfg));
+
+
+            // 加载外部插件（可选）：将自定义设备驱动 DLL 放置于 程序目录/Plugins 下即可自动注册
+            if (string.IsNullOrEmpty(pluginsDir))
+                pluginsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
+
+            try
+            {
+                LoadPlugins(pluginsDir);
+                LogHelper.Info("[Init] 插件目录加载完成: " + pluginsDir);
+            }
+            catch (Exception ex)
+            {
+                // 使用 ex.ToString() 输出完整异常文本（包含堆栈信息），确保日志能保留插件加载失败时的上下文细节
+                var errorDetail = $"[Init] 插件加载异常：{ex}";
+                LogHelper.Error(errorDetail);
+                LogHelper.Error($"插件目录加载失败，原因：{ex.Message}{Environment.NewLine}插件路径：{pluginsDir}{Environment.NewLine}请检查插件文件是否完整或依赖是否齐全。");
+            }
         }
 
         private string GetDeviceKey(string deviceName, DeviceConfig cfg)

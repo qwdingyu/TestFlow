@@ -136,6 +136,8 @@ namespace ZL.WorkflowLib.Workflow
             where TPrev : StepBody
         {
             var entry = previous.Then<ResolveStepContextStep>();
+            // 这里通过显式清空上一节点的 NextStep，确保每次链式构建都以手动配置的跳转为准
+            ClearNextStep(previous);
             entry.Input<StepConfig>(step => step.StepConfig, data => stepConfig);
 
             string type = (stepConfig != null && !string.IsNullOrWhiteSpace(stepConfig.Type))
@@ -268,6 +270,8 @@ namespace ZL.WorkflowLib.Workflow
 
             pipeline.Transition.Input<string>(s => s.FailureStepName, data => failure.StepName);
             pipeline.Transition.Input<bool>(s => s.FailureTargetExists, data => failure.Exists);
+            // 成功配置完路由后再清理默认 NextStep，避免后续继续调用 Then 时出现意外跳转
+            ClearNextStep(pipeline.Transition);
         }
 
         // 统一建边 + 去重 + 真正添加 Outcome 映射
@@ -368,27 +372,32 @@ namespace ZL.WorkflowLib.Workflow
         private static void ClearNextStep<TStep>(IStepBuilder<FlowData, TStep> from) where TStep : StepBody
         {
             if (from == null) return;
-
             var stepProp = from.GetType().GetProperty("Step");
             if (stepProp == null) return;
-
             var stepObj = stepProp.GetValue(from, null);
             if (stepObj == null) return;
-
-            // 优先清 NextStepId（WorkflowCore 的默认链路字段）
-            var nextIdProp = stepObj.GetType().GetProperty("NextStepId");
-            if (nextIdProp != null)
-            {
-                try { nextIdProp.SetValue(stepObj, null, null); }
-                catch { }
-            }
-
-            // 兼容：若存在 NextStep 字段也一并清理
             var nextProp = stepObj.GetType().GetProperty("NextStep");
             if (nextProp != null)
             {
-                try { nextProp.SetValue(stepObj, null, null); }
-                catch { }
+                // WorkflowCore 2.x/3.x 中 NextStep 可能是引用类型（StepBase）或可空值类型，统一置为默认值
+                object nextValue = null;
+                if (nextProp.PropertyType.IsValueType && Nullable.GetUnderlyingType(nextProp.PropertyType) == null)
+                {
+                    nextValue = Activator.CreateInstance(nextProp.PropertyType);
+                }
+                nextProp.SetValue(stepObj, nextValue, null);
+            }
+
+            var nextIdProp = stepObj.GetType().GetProperty("NextStepId");
+            if (nextIdProp != null)
+            {
+                // WorkflowCore 3.15 将 NextStepId 独立成属性，这里同样清空以避免默认自动衔接
+                object nextIdValue = null;
+                if (nextIdProp.PropertyType.IsValueType && Nullable.GetUnderlyingType(nextIdProp.PropertyType) == null)
+                {
+                    nextIdValue = Activator.CreateInstance(nextIdProp.PropertyType);
+                }
+                nextIdProp.SetValue(stepObj, nextIdValue, null);
             }
         }
 

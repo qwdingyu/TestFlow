@@ -83,26 +83,26 @@ namespace TestFlowDemo
             _factory = new DeviceFactory(dbPath, reportDir);
             DeviceServices.Factory = _factory;
 
-            // 加载外部插件（可选）：将自定义设备驱动 DLL 放置于 程序目录/Plugins 下即可自动注册
-            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            var pluginDir = Path.Combine(baseDir, "Plugins");
-            try
-            {
-                DeviceServices.Factory.LoadPlugins(pluginDir);
-                AddLog("[Init] 插件目录加载完成: " + pluginDir);
-            }
-            catch (Exception ex)
-            {
-                // 使用 ex.ToString() 输出完整异常文本（包含堆栈信息），确保日志能保留插件加载失败时的上下文细节
-                var errorDetail = $"[Init] 插件加载异常：{ex}";
-                AddLog(errorDetail);
-                // 通过弹窗即时提醒用户插件加载失败，并提示检查插件目录与依赖，避免静默出错
-                MessageBox.Show(
-                    $"插件目录加载失败，原因：{ex.Message}{Environment.NewLine}插件路径：{pluginDir}{Environment.NewLine}请检查插件文件是否完整或依赖是否齐全。",
-                    "插件加载失败",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-            }
+            //// 加载外部插件（可选）：将自定义设备驱动 DLL 放置于 程序目录/Plugins 下即可自动注册
+            //var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            //var pluginDir = Path.Combine(baseDir, "Plugins");
+            //try
+            //{
+            //    DeviceServices.Factory.LoadPlugins(pluginDir);
+            //    AddLog("[Init] 插件目录加载完成: " + pluginDir);
+            //}
+            //catch (Exception ex)
+            //{
+            //    // 使用 ex.ToString() 输出完整异常文本（包含堆栈信息），确保日志能保留插件加载失败时的上下文细节
+            //    var errorDetail = $"[Init] 插件加载异常：{ex}";
+            //    AddLog(errorDetail);
+            //    // 通过弹窗即时提醒用户插件加载失败，并提示检查插件目录与依赖，避免静默出错
+            //    MessageBox.Show(
+            //        $"插件目录加载失败，原因：{ex.Message}{Environment.NewLine}插件路径：{pluginDir}{Environment.NewLine}请检查插件文件是否完整或依赖是否齐全。",
+            //        "插件加载失败",
+            //        MessageBoxButtons.OK,
+            //        MessageBoxIcon.Error);
+            //}
 
             // 初始化参数注入器（缓存 + TTL 300s）
             WorkflowServices.ParamInjector = new ParamInjector(_db, 300, "L1", "ST01");

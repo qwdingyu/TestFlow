@@ -20,11 +20,6 @@ namespace ZL.DeviceLib.Devices
             _can = new CanTransport(cfg.ConnectionString);
             _sched = new CanMessageScheduler(_can);
             //// 设置过滤器：仅保留测试相关的 ID
-            //_can.SetFilter(msg =>
-            //{
-            //    // 可扩展成配置文件/白名单
-            //    return msg.Id == "0x12D" || msg.Id == "0x4C1";
-            //}); 
             _can.SetFilter(msg =>
             {
                 // 只保留本测试需要的 ID
@@ -91,37 +86,6 @@ namespace ZL.DeviceLib.Devices
 
         }
 
-        //public DeviceExecResult Execute(StepConfig step, StepContext ctx)
-        //{
-        //    var token = ctx.Cancellation;
-        //    var outputs = new Dictionary<string, object>();
-        //    try
-        //    {
-        //        LogHelper.Info($"--当前测试步骤【{step.Name}】设备【{step.Device}】, 参数【{JsonConvert.SerializeObject(step.Parameters)}】");
-        //        if (step.Command == "send_and_receive")
-        //        {
-        //            string id = step.Parameters.ContainsKey("id") ? step.Parameters["id"].ToString() : "0x000";
-        //            byte[] data = step.Parameters.ContainsKey("data") ? ((IEnumerable<object>)step.Parameters["data"]).Select(x => ParseHex(x.ToString())).ToArray() : new byte[0];
-        //            var msg = new CanMessage { Id = id, Data = data, Timestamp = DateTime.Now };
-        //            _can.Send(msg);
-        //            var resp = _can.WaitForResponse(m => m.Id == id, 2000, token);
-        //            outputs["response"] = "ACK";
-        //            outputs["id"] = resp.Id;
-        //            outputs["data"] = BitConverter.ToString(resp.Data);
-        //            return new DeviceExecResult { Success = true, Message = $"CAN ACK (ID={resp.Id}, DATA={outputs["data"]})", Outputs = outputs };
-        //        }
-        //        throw new Exception("Unsupported command: " + step.Command);
-        //    }
-        //    catch (OperationCanceledException)
-        //    {
-        //        return new DeviceExecResult { Success = false, Message = "Step cancelled by timeout", Outputs = outputs };
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return new DeviceExecResult { Success = false, Message = "CAN Exception: " + ex.Message, Outputs = outputs };
-        //    }
-        //}
-
         public DeviceExecResult Execute(StepConfig step, StepContext ctx)
         {
             var token = ctx.Cancellation;
@@ -131,28 +95,27 @@ namespace ZL.DeviceLib.Devices
                 LogHelper.Info($"--当前测试步骤【{step.Name}】设备【{step.Target}】, 参数【{JsonConvert.SerializeObject(step.Parameters)}】");
 
                 string id = step.Parameters.ContainsKey("id") ? step.Parameters["id"].ToString() : "0x000";
-                byte[] data = step.Parameters.ContainsKey("data")
-                    ? ((IEnumerable<object>)step.Parameters["data"]).Select(x => ParseHex(x.ToString())).ToArray()
-                    : new byte[0];
+                byte[] data = step.Parameters.ContainsKey("data") ? ((IEnumerable<object>)step.Parameters["data"]).Select(x => ParseHex(x.ToString())).ToArray() : new byte[0];
 
                 // 1) 周期环境报文
+                // 周期环境报文
                 if (step.Command == "start_seat_env")
                 {
-                    int period = 100;
-                    _sched.UpsertPeriodic("0x201", Hex("00-00-00-00-80-00-00-00"), period);
-                    _sched.UpsertPeriodic("0x1F1", Hex("20-00-00-00-00-00-00-00"), period);
-                    _sched.UpsertPeriodic("0x17D", Hex("00-00-00-00-00-00-00-00"), period);
-                    _sched.UpsertPeriodic("0x120", Hex("00-00-00-00-01-00-00-00"), period);
-
+                    _sched.StartSeatEnv100ms();
                     return Ok("Seat ENV started");
                 }
                 if (step.Command == "stop_seat_env")
                 {
-                    _sched.RemovePeriodic("0x201");
-                    _sched.RemovePeriodic("0x1F1");
-                    _sched.RemovePeriodic("0x17D");
-                    _sched.RemovePeriodic("0x120");
+                    _sched.StopSeatEnv();
                     return Ok("Seat ENV stopped");
+                }
+
+                // 事件型 —— 异步触发，不要同步阻塞等待
+                if (step.Command == "seat_heater_control")
+                {
+                    var level = step.Parameters.ContainsKey("level") ? step.Parameters["level"].ToString() : "low";
+                    var _ = _sched.SeatHeaterAsync(level);
+                    return Ok($"Heater {level} accepted");
                 }
 
                 // 2) 事件型报文
