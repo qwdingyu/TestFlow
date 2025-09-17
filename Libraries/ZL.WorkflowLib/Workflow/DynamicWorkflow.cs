@@ -71,8 +71,9 @@ namespace ZL.WorkflowLib.Workflow
                 init.Input<int?>(s => s.FirstStepId, data => stepId);
                 init.Input<string>(s => s.FirstStepName, data => stepName);
 
+                // 仅保留 Outcome 路由
                 AddOutcomeMapping(init, stepId, stepId);
-                ClearNextStep(init);
+                ClearNextStep(init); // 修复：真正清掉 init 的默认 Next
             }
             else
             {
@@ -102,13 +103,19 @@ namespace ZL.WorkflowLib.Workflow
                     var depPipe = pipelines[dep];
                     if (depPipe.EntryId.HasValue && pipe.EntryId.HasValue)
                     {
-                        // 替换为统一 AddEdge（自动去重 + 建立 Outcome 映射）
+                        // 统一 AddEdge（自动去重 + 添加 Outcome 映射）
                         AddEdge(dep, cfg.Name, depPipe, pipe, edges);
                     }
                 }
             }
 
-            // 5) 检查入度
+            // 4.5) 重要：去掉构建时串起来的“默认 NextStep”骨架链，避免双指针
+            foreach (var pipe in pipelines.Values)
+            {
+                ClearNextStep(pipe.Transition);
+            }
+
+            // 5) 检查入度（提示 JSON 冗余）
             foreach (var p in pipelines.Values)
             {
                 int incoming = 0;
@@ -232,7 +239,8 @@ namespace ZL.WorkflowLib.Workflow
                 UiEventBus.PublishLog("[BuildDedup] " + cfg.Name + " 成功/失败路由指向同一个节点 " + success.StepName + "，自动去重");
                 failure.StepId = null;
             }
-            // —— 新增：统一用 AddEdge 建立 Success / Failure 路由（并全局去重）
+
+            // —— 用 AddEdge 建立 Success / Failure 路由（并全局去重）
             if (success.StepId.HasValue)
             {
                 StepPipeline toPipe;
@@ -240,7 +248,7 @@ namespace ZL.WorkflowLib.Workflow
                 {
                     AddEdge(cfg.Name, success.StepName, pipeline, toPipe, edges);
                 }
-                // 保留原来的属性注入（不改动）
+                // 保留原 Input
                 pipeline.Transition.Input<int?>(s => s.SuccessStepId, data => success.StepId);
             }
 
@@ -251,7 +259,7 @@ namespace ZL.WorkflowLib.Workflow
                 {
                     AddEdge(cfg.Name, failure.StepName, pipeline, toPipe2, edges);
                 }
-                // 保留原来的属性注入（不改动）
+                // 保留原 Input
                 pipeline.Transition.Input<int?>(s => s.FailureStepId, data => failure.StepId);
             }
 
@@ -263,7 +271,11 @@ namespace ZL.WorkflowLib.Workflow
         }
 
         // 统一建边 + 去重 + 真正添加 Outcome 映射
-        private static void AddEdge(string fromName, string toName, StepPipeline fromPipe, StepPipeline toPipe, HashSet<string> edges)
+        private static void AddEdge(string fromName,
+                                    string toName,
+                                    StepPipeline fromPipe,
+                                    StepPipeline toPipe,
+                                    HashSet<string> edges)
         {
             if (string.IsNullOrWhiteSpace(fromName)) return;
             if (string.IsNullOrWhiteSpace(toName)) return;
@@ -282,6 +294,9 @@ namespace ZL.WorkflowLib.Workflow
                 UiEventBus.PublishLog("[BuildDedup] 跳过重复边 " + fromName + " -> " + toName);
             }
         }
+
+        // ===== 其余辅助方法保持不变（仅修正 ClearNextStep 以适配 NextStepId） =====
+
         private static StepPipeline ResolveFirstPipeline(IList<StepConfig> steps, IDictionary<string, StepPipeline> pipelines)
         {
             if (steps == null || pipelines == null)
@@ -353,12 +368,28 @@ namespace ZL.WorkflowLib.Workflow
         private static void ClearNextStep<TStep>(IStepBuilder<FlowData, TStep> from) where TStep : StepBody
         {
             if (from == null) return;
+
             var stepProp = from.GetType().GetProperty("Step");
             if (stepProp == null) return;
+
             var stepObj = stepProp.GetValue(from, null);
             if (stepObj == null) return;
+
+            // 优先清 NextStepId（WorkflowCore 的默认链路字段）
+            var nextIdProp = stepObj.GetType().GetProperty("NextStepId");
+            if (nextIdProp != null)
+            {
+                try { nextIdProp.SetValue(stepObj, null, null); }
+                catch { }
+            }
+
+            // 兼容：若存在 NextStep 字段也一并清理
             var nextProp = stepObj.GetType().GetProperty("NextStep");
-            if (nextProp != null) nextProp.SetValue(stepObj, null, null);
+            if (nextProp != null)
+            {
+                try { nextProp.SetValue(stepObj, null, null); }
+                catch { }
+            }
         }
 
         private static int? TryGetStepId<TStep>(IStepBuilder<FlowData, TStep> builder) where TStep : StepBody
