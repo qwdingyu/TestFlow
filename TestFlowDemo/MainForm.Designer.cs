@@ -23,12 +23,13 @@
             this.txtLog = new System.Windows.Forms.TextBox();
             this.lblStatus = new System.Windows.Forms.Label();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.btnRefreshParams = new System.Windows.Forms.Button();
             this.btnClearLog = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
             this.splitContainer3 = new System.Windows.Forms.SplitContainer();
             this.lblPoolStatus = new System.Windows.Forms.Label();
-            this.btnRefreshParams = new System.Windows.Forms.Button();
+            this.ck_isLite = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -46,7 +47,7 @@
             // txtBarcode
             // 
             this.txtBarcode.Font = new System.Drawing.Font("微软雅黑", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.txtBarcode.Location = new System.Drawing.Point(106, 11);
+            this.txtBarcode.Location = new System.Drawing.Point(106, 12);
             this.txtBarcode.Name = "txtBarcode";
             this.txtBarcode.Size = new System.Drawing.Size(219, 29);
             this.txtBarcode.TabIndex = 0;
@@ -55,7 +56,7 @@
             // btnStart
             // 
             this.btnStart.Font = new System.Drawing.Font("微软雅黑", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.btnStart.Location = new System.Drawing.Point(350, 10);
+            this.btnStart.Location = new System.Drawing.Point(420, 11);
             this.btnStart.Name = "btnStart";
             this.btnStart.Size = new System.Drawing.Size(105, 31);
             this.btnStart.TabIndex = 1;
@@ -65,7 +66,7 @@
             // btnStop
             // 
             this.btnStop.Font = new System.Drawing.Font("微软雅黑", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.btnStop.Location = new System.Drawing.Point(480, 10);
+            this.btnStop.Location = new System.Drawing.Point(540, 11);
             this.btnStop.Name = "btnStop";
             this.btnStop.Size = new System.Drawing.Size(105, 31);
             this.btnStop.TabIndex = 2;
@@ -104,6 +105,7 @@
             // 
             // splitContainer1.Panel1
             // 
+            this.splitContainer1.Panel1.Controls.Add(this.ck_isLite);
             this.splitContainer1.Panel1.Controls.Add(this.btnRefreshParams);
             this.splitContainer1.Panel1.Controls.Add(this.btnClearLog);
             this.splitContainer1.Panel1.Controls.Add(this.label1);
@@ -118,10 +120,20 @@
             this.splitContainer1.SplitterDistance = 51;
             this.splitContainer1.TabIndex = 5;
             // 
+            // btnRefreshParams
+            // 
+            this.btnRefreshParams.Font = new System.Drawing.Font("微软雅黑", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.btnRefreshParams.Location = new System.Drawing.Point(780, 11);
+            this.btnRefreshParams.Name = "btnRefreshParams";
+            this.btnRefreshParams.Size = new System.Drawing.Size(105, 31);
+            this.btnRefreshParams.TabIndex = 5;
+            this.btnRefreshParams.Text = "刷新参数";
+            this.btnRefreshParams.Click += new System.EventHandler(this.btnRefreshParams_Click);
+            // 
             // btnClearLog
             // 
             this.btnClearLog.Font = new System.Drawing.Font("微软雅黑", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.btnClearLog.Location = new System.Drawing.Point(607, 10);
+            this.btnClearLog.Location = new System.Drawing.Point(660, 11);
             this.btnClearLog.Name = "btnClearLog";
             this.btnClearLog.Size = new System.Drawing.Size(105, 31);
             this.btnClearLog.TabIndex = 4;
@@ -132,7 +144,7 @@
             // 
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("微软雅黑", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.label1.Location = new System.Drawing.Point(14, 14);
+            this.label1.Location = new System.Drawing.Point(14, 15);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(90, 22);
             this.label1.TabIndex = 3;
@@ -184,15 +196,19 @@
             this.lblPoolStatus.TabIndex = 5;
             this.lblPoolStatus.Text = "状态: 空闲";
             // 
-            // btnRefreshParams
+            // ck_isLite
             // 
-            this.btnRefreshParams.Font = new System.Drawing.Font("微软雅黑", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.btnRefreshParams.Location = new System.Drawing.Point(727, 9);
-            this.btnRefreshParams.Name = "btnRefreshParams";
-            this.btnRefreshParams.Size = new System.Drawing.Size(105, 31);
-            this.btnRefreshParams.TabIndex = 5;
-            this.btnRefreshParams.Text = "刷新参数";
-            this.btnRefreshParams.Click += new System.EventHandler(this.btnRefreshParams_Click);
+            this.ck_isLite.AutoSize = true;
+            this.ck_isLite.Checked = true;
+            this.ck_isLite.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.ck_isLite.Font = new System.Drawing.Font("微软雅黑", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.ck_isLite.Location = new System.Drawing.Point(353, 13);
+            this.ck_isLite.Name = "ck_isLite";
+            this.ck_isLite.Size = new System.Drawing.Size(61, 26);
+            this.ck_isLite.TabIndex = 6;
+            this.ck_isLite.Text = "简排";
+            this.ck_isLite.UseVisualStyleBackColor = true;
+            this.ck_isLite.CheckedChanged += new System.EventHandler(this.ck_isLite_CheckedChanged);
             // 
             // MainForm
             // 
@@ -227,5 +243,6 @@
         private System.Windows.Forms.SplitContainer splitContainer3;
         private System.Windows.Forms.Label lblPoolStatus;
         private System.Windows.Forms.Button btnRefreshParams;
+        private System.Windows.Forms.CheckBox ck_isLite;
     }
 }

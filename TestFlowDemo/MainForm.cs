@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
-using System.IO;
 using System.Windows.Forms;
 using WorkflowCore.Interface;
 using ZL.DeviceLib;
@@ -10,7 +9,6 @@ using ZL.DeviceLib.Engine;
 using ZL.DeviceLib.Storage;
 using ZL.WorkflowLib;
 using ZL.WorkflowLib.Engine;
-using ZL.WorkflowLib.Workflow;
 using ZL.WorkflowLib.Workflow.Flows;
 
 namespace TestFlowDemo
@@ -170,7 +168,7 @@ namespace TestFlowDemo
             var provider = services.BuildServiceProvider();
             _host = provider.GetService<IWorkflowHost>();
 
-            _runner = new TestRunner(_host);
+            _runner = new TestRunner(_host, ck_isLite.Checked);
 
             AddLog("[Init] WorkflowCore Host 已启动");
         }
@@ -383,8 +381,12 @@ namespace TestFlowDemo
         private void AddLog(string msg)
         {
             LogHelper.Info(msg);
-            // 显示本地时间；数据库仍保存 UTC
             txtLog.AppendText(DateTime.Now.ToString("u") + " " + msg + Environment.NewLine);
+        }
+
+        private void ck_isLite_CheckedChanged(object sender, EventArgs e)
+        {
+            _runner.UseLite(ck_isLite.Checked);
         }
     }
 }

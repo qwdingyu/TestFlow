@@ -10,8 +10,12 @@ namespace ZL.WorkflowLib.Engine
     {
         private readonly Dictionary<string, StepConfig> _map = new Dictionary<string, StepConfig>(StringComparer.OrdinalIgnoreCase);
 
-        public void LoadFromDirectory(string dir)
+        public void LoadFromDirectory(string dir = "")
         {
+            if (string.IsNullOrEmpty(dir))
+            {
+                dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Flows", "Subflows");
+            }
             if (!Directory.Exists(dir))
                 return;
 

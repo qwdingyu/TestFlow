@@ -6,7 +6,6 @@ namespace ZL.DeviceLib.Models
     {
         public string Name { get; set; }
         public string Description { get; set; }
-        // 语义泛化：Device 改为 Target 
         public string Target { get; set; }
         public string Command { get; set; }
         public Dictionary<string, object> Parameters { get; set; }

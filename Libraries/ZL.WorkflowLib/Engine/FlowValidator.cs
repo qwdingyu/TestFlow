@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using ZL.DeviceLib;
 using ZL.DeviceLib.Models;
+using ZL.WorkflowLib.Workflow;
 
 namespace ZL.WorkflowLib.Engine
 {

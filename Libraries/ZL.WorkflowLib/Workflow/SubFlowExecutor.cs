@@ -13,27 +13,6 @@ using ZL.WorkflowLib.Workflow.Flows;
 namespace ZL.WorkflowLib.Workflow
 {
     /// <summary>
-    ///     子流程执行结果模型，供 <see cref="SubFlowExecutor"/> 与 <see cref="DeviceExecStep.ExecuteSingleStep"/> 复用。
-    /// </summary>
-    public sealed class OrchTaskResult
-    {
-        /// <summary>执行是否成功。</summary>
-        public bool Success { get; set; }
-
-        /// <summary>执行信息，用于 UI 与日志展示。</summary>
-        public string Message { get; set; }
-
-        /// <summary>设备输出字典。</summary>
-        public Dictionary<string, object> Outputs { get; set; } = new Dictionary<string, object>();
-
-        /// <summary>执行开始时间。</summary>
-        public DateTime StartedAt { get; set; }
-
-        /// <summary>执行结束时间。</summary>
-        public DateTime FinishedAt { get; set; }
-    }
-
-    /// <summary>
     ///     子流程执行器：负责将代码/配置中定义的子流程注册为 WorkflowCore 工作流，并在运行期调用。
     /// </summary>
     public class SubFlowExecutor
@@ -70,7 +49,7 @@ namespace ZL.WorkflowLib.Workflow
         /// <summary>
         ///     执行行内子流程（主流程配置中直接展开 Steps）。
         /// </summary>
-        public bool RunInlineSubFlow(StepConfig stepCfg, FlowData data, StepConfig parentStepCfg)
+        public bool RunInlineSubFlow(StepConfig stepCfg, FlowModels data, StepConfig parentStepCfg)
         {
             return RunSubFlowInternal(stepCfg, data, parentStepCfg);
         }
@@ -78,7 +57,7 @@ namespace ZL.WorkflowLib.Workflow
         /// <summary>
         ///     执行注册表中的子流程（通过 Ref 引用）。
         /// </summary>
-        public bool RunRegisteredSubFlow(string subflowName, FlowData data, StepConfig parentStepCfg)
+        public bool RunRegisteredSubFlow(string subflowName, FlowModels data, StepConfig parentStepCfg)
         {
             if (string.IsNullOrEmpty(subflowName))
             {
@@ -100,7 +79,7 @@ namespace ZL.WorkflowLib.Workflow
             return RunSubFlowInternal(definition, data, parentStepCfg);
         }
 
-        private bool RunSubFlowInternal(StepConfig definition, FlowData data, StepConfig parentStepCfg)
+        private bool RunSubFlowInternal(StepConfig definition, FlowModels data, StepConfig parentStepCfg)
         {
             if (definition == null)
                 throw new ArgumentNullException(nameof(definition));
@@ -183,12 +162,12 @@ namespace ZL.WorkflowLib.Workflow
             }
         }
 
-        private static FlowData CloneFlowData(FlowData source)
+        private static FlowModels CloneFlowData(FlowModels source)
         {
             if (source == null)
-                return new FlowData();
+                return new FlowModels();
 
-            return new FlowData
+            return new FlowModels
             {
                 Model = source.Model,
                 Sn = source.Sn,
@@ -206,7 +185,7 @@ namespace ZL.WorkflowLib.Workflow
         /// <summary>
         ///     WorkflowCore 子流程节点实际调用的执行函数。
         /// </summary>
-        internal static bool ExecuteSequentialSubflow(string subflowName, IList<StepConfig> steps, FlowData data)
+        internal static bool ExecuteSequentialSubflow(string subflowName, IList<StepConfig> steps, FlowModels data)
         {
             if (data == null)
                 throw new ArgumentNullException(nameof(data));
@@ -255,9 +234,9 @@ namespace ZL.WorkflowLib.Workflow
             return success;
         }
 
-        private static StepContext CreateSharedContext(FlowData data)
+        private static StepContext CreateSharedContext(FlowModels data)
         {
-            var baseModel = data != null ? data.Model : DeviceServices.Config != null ? DeviceServices.Config.Model : string.Empty;
+            var baseModel = data != null ? data.Model : WorkflowServices.FlowCfg != null ? WorkflowServices.FlowCfg.Model : string.Empty;
             var token = data != null ? data.Cancellation : CancellationToken.None;
             if (DeviceServices.Context != null)
                 return DeviceServices.Context.CloneWithCancellation(token);
@@ -316,7 +295,7 @@ namespace ZL.WorkflowLib.Workflow
             return step.Name;
         }
 
-        private static void PersistTaskResult(StepConfig step, OrchTaskResult result, FlowData data)
+        private static void PersistTaskResult(StepConfig step, OrchTaskResult result, FlowModels data)
         {
             if (step == null || data == null)
                 return;

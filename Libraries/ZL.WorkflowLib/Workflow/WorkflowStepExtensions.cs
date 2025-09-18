@@ -9,9 +9,9 @@ namespace ZL.WorkflowLib.Workflow
     /// </summary>
     public static class WorkflowStepExtensions
     {
-        public static IStepBuilder<FlowData, TStep> WithRetry<TStep>(
-            this IStepBuilder<FlowData, TStep> builder,
-            Func<FlowData, RetryOptions> selector)
+        public static IStepBuilder<FlowModels, TStep> WithRetry<TStep>(
+            this IStepBuilder<FlowModels, TStep> builder,
+            Func<FlowModels, RetryOptions> selector)
             where TStep : StepBody, IRetryConfigurable
         {
             if (builder == null)
@@ -28,9 +28,9 @@ namespace ZL.WorkflowLib.Workflow
             return builder;
         }
 
-        public static IStepBuilder<FlowData, TStep> WithDelay<TStep>(
-            this IStepBuilder<FlowData, TStep> builder,
-            Func<FlowData, DelayOptions> selector)
+        public static IStepBuilder<FlowModels, TStep> WithDelay<TStep>(
+            this IStepBuilder<FlowModels, TStep> builder,
+            Func<FlowModels, DelayOptions> selector)
             where TStep : StepBody, IDelayConfigurable
         {
             if (builder == null)

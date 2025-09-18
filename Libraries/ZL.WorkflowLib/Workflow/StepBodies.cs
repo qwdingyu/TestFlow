@@ -32,7 +32,7 @@ namespace ZL.WorkflowLib.Workflow
 
         public override ExecutionResult Run(IStepExecutionContext context)
         {
-            var data = (FlowData)context.Workflow.Data;
+            var data = (FlowModels)context.Workflow.Data;
             data.WorkflowCompleted = false;
             data.LastSuccess = true;
             data.Current = null;
@@ -75,7 +75,7 @@ namespace ZL.WorkflowLib.Workflow
 
         public override ExecutionResult Run(IStepExecutionContext context)
         {
-            var data = (FlowData)context.Workflow.Data;
+            var data = (FlowModels)context.Workflow.Data;
             if (data.WorkflowCompleted)
                 return ExecutionResult.Next();
 
@@ -117,7 +117,7 @@ namespace ZL.WorkflowLib.Workflow
         public override ExecutionResult Run(IStepExecutionContext context)
         {
             Dbg.WfDbg(context, "Prepare");
-            var data = (FlowData)context.Workflow.Data;
+            var data = (FlowModels)context.Workflow.Data;
             if (data.WorkflowCompleted || data.CurrentStepKind != StepExecutionKind.Device)
                 return ExecutionResult.Next();
 
@@ -159,7 +159,7 @@ namespace ZL.WorkflowLib.Workflow
 
         public override ExecutionResult Run(IStepExecutionContext context)
         {
-            var data = (FlowData)context.Workflow.Data;
+            var data = (FlowModels)context.Workflow.Data;
             if (data.WorkflowCompleted || data.CurrentExecution == null)
                 return ExecutionResult.Next();
 
@@ -190,7 +190,7 @@ namespace ZL.WorkflowLib.Workflow
 
         public override ExecutionResult Run(IStepExecutionContext context)
         {
-            var data = (FlowData)context.Workflow.Data;
+            var data = (FlowModels)context.Workflow.Data;
             var exec = data.CurrentExecution;
             if (data.WorkflowCompleted || exec == null)
                 return ExecutionResult.Next();
@@ -258,7 +258,7 @@ namespace ZL.WorkflowLib.Workflow
 
         public override ExecutionResult Run(IStepExecutionContext context)
         {
-            var data = (FlowData)context.Workflow.Data;
+            var data = (FlowModels)context.Workflow.Data;
             var exec = data.CurrentExecution;
             if (data.WorkflowCompleted || exec == null)
                 return ExecutionResult.Next();
@@ -272,7 +272,7 @@ namespace ZL.WorkflowLib.Workflow
             for (int i = 0; i < extras.Count; i++)
             {
                 var extra = extras[i];
-                var alias = string.IsNullOrWhiteSpace(extra.Alias) ? extra.Device : extra.Alias;
+                var alias = string.IsNullOrWhiteSpace(extra.Alias) ? extra.Target : extra.Alias;
                 var retry = extra.Retry ?? new RetrySpec { Attempts = RetryAttempts, DelayMs = RetryDelayMs };
 
                 if (extra.Join == ExtraJoin.Forget)
@@ -285,7 +285,7 @@ namespace ZL.WorkflowLib.Workflow
                 {
                     var outputs = DeviceExecutionHelper.ExecuteDeviceCommand(
                         data,
-                        extra.Device,
+                        extra.Target,
                         extra.Command,
                         extra.Parameters,
                         extra.TimeoutMs,
@@ -298,7 +298,7 @@ namespace ZL.WorkflowLib.Workflow
                 catch (Exception ex)
                 {
                     exec.ExtrasSuccess = false;
-                    UiEventBus.PublishLog($"[Extra] {extra.Device}.{extra.Command} 失败：{ex.Message}");
+                    UiEventBus.PublishLog($"[Extra] {extra.Target}.{extra.Command} 失败：{ex.Message}");
                 }
             }
 
@@ -315,7 +315,7 @@ namespace ZL.WorkflowLib.Workflow
         public override ExecutionResult Run(IStepExecutionContext context)
         {
             Dbg.WfDbg(context, "Finalize");
-            var data = (FlowData)context.Workflow.Data;
+            var data = (FlowModels)context.Workflow.Data;
             var exec = data.CurrentExecution;
             if (data.WorkflowCompleted || data.CurrentStepKind != StepExecutionKind.Device || exec == null)
                 return ExecutionResult.Next();
@@ -429,7 +429,7 @@ namespace ZL.WorkflowLib.Workflow
                     if (step.TimeoutMs > 0)
                         linked.CancelAfter(step.TimeoutMs);
 
-                    var model = sharedCtx != null ? sharedCtx.Model : DeviceServices.Config != null ? DeviceServices.Config.Model : string.Empty;
+                    var model = sharedCtx != null ? sharedCtx.Model : WorkflowServices.FlowCfg != null ? WorkflowServices.FlowCfg.Model : string.Empty;
                     var stepCtx = sharedCtx != null
                         ? sharedCtx.CloneWithCancellation(linked.Token)
                         : new StepContext(model, linked.Token);
@@ -475,7 +475,7 @@ namespace ZL.WorkflowLib.Workflow
     {
         public override ExecutionResult Run(IStepExecutionContext context)
         {
-            var data = (FlowData)context.Workflow.Data;
+            var data = (FlowModels)context.Workflow.Data;
             if (data.WorkflowCompleted || data.CurrentStepKind != StepExecutionKind.SubFlow)
                 return ExecutionResult.Next();
 
@@ -509,7 +509,7 @@ namespace ZL.WorkflowLib.Workflow
     {
         public override ExecutionResult Run(IStepExecutionContext context)
         {
-            var data = (FlowData)context.Workflow.Data;
+            var data = (FlowModels)context.Workflow.Data;
             if (data.WorkflowCompleted || data.CurrentStepKind != StepExecutionKind.SubFlowReference)
                 return ExecutionResult.Next();
 
@@ -595,7 +595,7 @@ namespace ZL.WorkflowLib.Workflow
 
         public override ExecutionResult Run(IStepExecutionContext context)
         {
-            var data = (FlowData)context.Workflow.Data;
+            var data = (FlowModels)context.Workflow.Data;
 
             Dbg.WfDbg(context, "Transition", $"LastSuccess={data.LastSuccess}");
 
@@ -651,7 +651,7 @@ namespace ZL.WorkflowLib.Workflow
     /// </summary>
     internal static class WorkflowCompletionHelper
     {
-        public static void CompleteWorkflow(FlowData data)
+        public static void CompleteWorkflow(FlowModels data)
         {
             if (data == null)
                 return;
@@ -671,7 +671,7 @@ namespace ZL.WorkflowLib.Workflow
     internal static class DeviceExecutionHelper
     {
         public static Dictionary<string, object> ExecuteDeviceCommand(
-            FlowData data,
+            FlowModels data,
             string deviceName,
             string command,
             IDictionary<string, object> parameters,
@@ -746,7 +746,7 @@ namespace ZL.WorkflowLib.Workflow
             return new Dictionary<string, object>();
         }
 
-        public static void FireAndForgetExtra(FlowData data, ExtraDeviceSpec spec, RetrySpec fallback, string traceId)
+        public static void FireAndForgetExtra(FlowModels data, ExtraDeviceSpec spec, RetrySpec fallback, string traceId)
         {
             var retry = spec.Retry ?? fallback ?? new RetrySpec { Attempts = 1, DelayMs = 0 };
             var token = data != null ? data.Cancellation : CancellationToken.None;
@@ -754,11 +754,11 @@ namespace ZL.WorkflowLib.Workflow
             {
                 try
                 {
-                    ExecuteDeviceCommand(data, spec.Device, spec.Command, spec.Parameters, spec.TimeoutMs, retry, traceId, useLock: true);
+                    ExecuteDeviceCommand(data, spec.Target, spec.Command, spec.Parameters, spec.TimeoutMs, retry, traceId, useLock: true);
                 }
                 catch (Exception ex)
                 {
-                    UiEventBus.PublishLog($"[Extra-Forget] {spec.Device}.{spec.Command} 执行异常：{ex.Message}");
+                    UiEventBus.PublishLog($"[Extra-Forget] {spec.Target}.{spec.Command} 执行异常：{ex.Message}");
                 }
             }, token);
         }
@@ -818,11 +818,11 @@ namespace ZL.WorkflowLib.Workflow
             }
         }
 
-        private static StepContext CreateBaseContext(FlowData data)
+        private static StepContext CreateBaseContext(FlowModels data)
         {
             var model = data != null && !string.IsNullOrWhiteSpace(data.Model)
                 ? data.Model
-                : DeviceServices.Config != null ? DeviceServices.Config.Model : string.Empty;
+                : WorkflowServices.FlowCfg != null ? WorkflowServices.FlowCfg.Model : string.Empty;
             var token = data != null ? data.Cancellation : CancellationToken.None;
 
             if (DeviceServices.Context != null)

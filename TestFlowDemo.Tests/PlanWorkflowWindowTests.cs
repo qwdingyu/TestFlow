@@ -45,7 +45,7 @@ namespace TestFlowDemo.Tests
                 // 2. 准备假设备与上下文，确保步骤能顺利执行并被统计。
                 factory.Register("fake_device", (f, cfg) => new FakeDevice(cfg));
                 DeviceServices.Factory = factory;
-                DeviceServices.Config = new FlowConfig
+                WorkflowServices.FlowCfg = new FlowConfig
                 {
                     Model = "PLAN_MODEL",
                     Devices = new Dictionary<string, DeviceConfig>(StringComparer.OrdinalIgnoreCase)
@@ -102,7 +102,7 @@ namespace TestFlowDemo.Tests
                 factory.Dispose();
                 FakeDeviceRegistry.Reset();
                 DeviceServices.Factory = null;
-                DeviceServices.Config = null;
+                WorkflowServices.FlowCfg = null;
                 DeviceServices.Db = null;
                 DeviceServices.Context = null;
                 cts.Dispose();

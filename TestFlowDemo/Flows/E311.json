@@ -30,7 +30,7 @@
         "key": "status"
       },
       "TimeoutMs": 1000,
-      "DependsOn": [ "power_on" ],
+      "DependsOn": [  ],
       "OnSuccess": "ecu_can_check_ref",
       "OnFailure": "power_off"
     },
@@ -39,7 +39,7 @@
       "Description": "CAN 报文测试",
       "Type": "SubFlowRef",
       "Ref": "ecu_can_check",
-      "DependsOn": [ "power_on" ],
+      "DependsOn": [  ],
       "OnSuccess": "ecu_iv_check_ref",
       "OnFailure": "power_off"
     },
@@ -48,7 +48,7 @@
       "Description": "电流电阻联动检查",
       "Type": "SubFlowRef",
       "Ref": "ecu_iv_check",
-      "DependsOn": [ "ecu_can_check_ref" ],
+      "DependsOn": [  ],
       "OnSuccess": "power_off",
       "OnFailure": "power_off"
     },
@@ -65,7 +65,7 @@
         "value": "ok"
       },
       "TimeoutMs": 2000,
-      "DependsOn": [ "ecu_iv_check_ref" ],
+      "DependsOn": [  ],
       "OnSuccess": "generate_report",
       "OnFailure": "generate_report"
     },
@@ -78,7 +78,7 @@
       "Parameters": { "format": "html" },
       "ExpectedResults": {},
       "TimeoutMs": 2000,
-      "DependsOn": [ "power_off" ],
+      "DependsOn": [  ],
       "OnSuccess": "end_test",
       "OnFailure": "end_test"
     },
@@ -91,7 +91,7 @@
       "Parameters": {},
       "ExpectedResults": {},
       "TimeoutMs": 1000,
-      "DependsOn": [ "generate_report" ],
+      "DependsOn": [  ],
       "OnSuccess": "",
       "OnFailure": ""
     }

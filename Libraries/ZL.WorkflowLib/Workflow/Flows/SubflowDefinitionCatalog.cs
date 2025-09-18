@@ -21,9 +21,10 @@ namespace ZL.WorkflowLib.Workflow.Flows
             if (registry == null)
                 throw new ArgumentNullException(nameof(registry));
 
-            registry.Register(BuildEcuCanCheck());
-            registry.Register(BuildEcuIvCheck());
-            registry.Register(BuildEcuPowerOnCheck());
+            registry.LoadFromDirectory();
+            //registry.Register(BuildEcuCanCheck());
+            //registry.Register(BuildEcuIvCheck());
+            //registry.Register(BuildEcuPowerOnCheck());
         }
         /// <summary>
         /// 按照当前注册表内容创建 WorkflowCore 工作流，供 <see cref="SubFlowExecutor"/> 启动。
@@ -42,152 +43,152 @@ namespace ZL.WorkflowLib.Workflow.Flows
                 SubFlowExecutor.MarkWorkflowRegistered(JsonSubFlowWorkflow.BuildWorkflowId(subflow.Name));
             }
         }
-        private static StepConfig BuildEcuCanCheck()
-        {
-            var def = new StepConfig
-            {
-                Name = "ecu_can_check",
-                Description = "CAN 报文测试（代码定义）",
-                Type = "SubFlow",
-                Steps = new List<StepConfig>()
-            };
+        //private static StepConfig BuildEcuCanCheck()
+        //{
+        //    var def = new StepConfig
+        //    {
+        //        Name = "ecu_can_check",
+        //        Description = "CAN 报文测试（代码定义）",
+        //        Type = "SubFlow",
+        //        Steps = new List<StepConfig>()
+        //    };
 
-            var wake = new StepConfig
-            {
-                Name = "唤醒报文",
-                Description = "唤醒报文",
-                Target = "can_adapter_1",
-                Command = "send_and_receive",
-                Parameters = new Dictionary<string, object>(),
-                ExpectedResults = new Dictionary<string, object>()
-            };
-            wake.Parameters["@from_db"] = true;
-            def.Steps.Add(wake);
+        //    var wake = new StepConfig
+        //    {
+        //        Name = "唤醒报文",
+        //        Description = "唤醒报文",
+        //        Target = "can_adapter_1",
+        //        Command = "send_and_receive",
+        //        Parameters = new Dictionary<string, object>(),
+        //        ExpectedResults = new Dictionary<string, object>()
+        //    };
+        //    wake.Parameters["@from_db"] = true;
+        //    def.Steps.Add(wake);
 
-            var massage = new StepConfig
-            {
-                Name = "主驾按摩",
-                Description = "主驾按摩",
-                Target = "can_adapter_1",
-                Command = "send_and_receive",
-                Parameters = new Dictionary<string, object>(),
-                ExpectedResults = new Dictionary<string, object>()
-            };
-            massage.Parameters["@from_db"] = true;
-            def.Steps.Add(massage);
+        //    var massage = new StepConfig
+        //    {
+        //        Name = "主驾按摩",
+        //        Description = "主驾按摩",
+        //        Target = "can_adapter_1",
+        //        Command = "send_and_receive",
+        //        Parameters = new Dictionary<string, object>(),
+        //        ExpectedResults = new Dictionary<string, object>()
+        //    };
+        //    massage.Parameters["@from_db"] = true;
+        //    def.Steps.Add(massage);
 
-            return def;
-        }
+        //    return def;
+        //}
 
-        private static StepConfig BuildEcuIvCheck()
-        {
-            var def = new StepConfig
-            {
-                Name = "ecu_iv_check",
-                Description = "电流电阻联动检查",
-                Type = "SubFlow",
-                Steps = new List<StepConfig>()
-            };
+        //private static StepConfig BuildEcuIvCheck()
+        //{
+        //    var def = new StepConfig
+        //    {
+        //        Name = "ecu_iv_check",
+        //        Description = "电流电阻联动检查",
+        //        Type = "SubFlow",
+        //        Steps = new List<StepConfig>()
+        //    };
 
-            var applyRes = new StepConfig
-            {
-                Name = "apply_resistance",
-                Description = "设定电阻",
-                Target = "resistor_box",
-                Command = "set_resistance",
-                Parameters = new Dictionary<string, object>(),
-                ExpectedResults = new Dictionary<string, object>()
-            };
-            applyRes.Parameters["value"] = 100;
-            applyRes.ExpectedResults["mode"] = "equals";
-            applyRes.ExpectedResults["key"] = "status";
-            applyRes.ExpectedResults["value"] = "ok";
-            def.Steps.Add(applyRes);
+        //    var applyRes = new StepConfig
+        //    {
+        //        Name = "apply_resistance",
+        //        Description = "设定电阻",
+        //        Target = "resistor_box",
+        //        Command = "set_resistance",
+        //        Parameters = new Dictionary<string, object>(),
+        //        ExpectedResults = new Dictionary<string, object>()
+        //    };
+        //    applyRes.Parameters["value"] = 100;
+        //    applyRes.ExpectedResults["mode"] = "equals";
+        //    applyRes.ExpectedResults["key"] = "status";
+        //    applyRes.ExpectedResults["value"] = "ok";
+        //    def.Steps.Add(applyRes);
 
-            var measureCurrent = new StepConfig
-            {
-                Name = "measure_current",
-                Description = "测量电流",
-                Target = "current_meter_1",
-                Command = "measure",
-                Parameters = new Dictionary<string, object>(),
-                ExpectedResults = new Dictionary<string, object>()
-            };
-            measureCurrent.Parameters["range"] = "auto";
-            measureCurrent.ExpectedResults["mode"] = "range";
-            measureCurrent.ExpectedResults["key"] = "current";
-            measureCurrent.ExpectedResults["min"] = 1.0;
-            measureCurrent.ExpectedResults["max"] = 2.0;
-            def.Steps.Add(measureCurrent);
+        //    var measureCurrent = new StepConfig
+        //    {
+        //        Name = "measure_current",
+        //        Description = "测量电流",
+        //        Target = "current_meter_1",
+        //        Command = "measure",
+        //        Parameters = new Dictionary<string, object>(),
+        //        ExpectedResults = new Dictionary<string, object>()
+        //    };
+        //    measureCurrent.Parameters["range"] = "auto";
+        //    measureCurrent.ExpectedResults["mode"] = "range";
+        //    measureCurrent.ExpectedResults["key"] = "current";
+        //    measureCurrent.ExpectedResults["min"] = 1.0;
+        //    measureCurrent.ExpectedResults["max"] = 2.0;
+        //    def.Steps.Add(measureCurrent);
 
-            var measureVoltage = new StepConfig
-            {
-                Name = "measure_voltage",
-                Description = "测量电压",
-                Target = "voltmeter_1",
-                Command = "measure",
-                Parameters = new Dictionary<string, object>(),
-                ExpectedResults = new Dictionary<string, object>()
-            };
-            measureVoltage.Parameters["range"] = "auto";
-            measureVoltage.ExpectedResults["mode"] = "range";
-            measureVoltage.ExpectedResults["key"] = "current";
-            measureVoltage.ExpectedResults["min"] = 11.5;
-            measureVoltage.ExpectedResults["max"] = 12.5;
-            def.Steps.Add(measureVoltage);
+        //    var measureVoltage = new StepConfig
+        //    {
+        //        Name = "measure_voltage",
+        //        Description = "测量电压",
+        //        Target = "voltmeter_1",
+        //        Command = "measure",
+        //        Parameters = new Dictionary<string, object>(),
+        //        ExpectedResults = new Dictionary<string, object>()
+        //    };
+        //    measureVoltage.Parameters["range"] = "auto";
+        //    measureVoltage.ExpectedResults["mode"] = "range";
+        //    measureVoltage.ExpectedResults["key"] = "current";
+        //    measureVoltage.ExpectedResults["min"] = 11.5;
+        //    measureVoltage.ExpectedResults["max"] = 12.5;
+        //    def.Steps.Add(measureVoltage);
 
-            return def;
-        }
+        //    return def;
+        //}
 
-        private static StepConfig BuildEcuPowerOnCheck()
-        {
-            var def = new StepConfig
-            {
-                Name = "ecu_power_on_check",
-                Description = "ECU 上电检测",
-                Type = "SubFlow",
-                Steps = new List<StepConfig>()
-            };
+        //private static StepConfig BuildEcuPowerOnCheck()
+        //{
+        //    var def = new StepConfig
+        //    {
+        //        Name = "ecu_power_on_check",
+        //        Description = "ECU 上电检测",
+        //        Type = "SubFlow",
+        //        Steps = new List<StepConfig>()
+        //    };
 
-            var setVoltage = new StepConfig
-            {
-                Name = "set_voltage",
-                Description = "设置电流",
-                Target = "power_supply_1",
-                Command = "set_voltage",
-                Parameters = new Dictionary<string, object>(),
-                ExpectedResults = new Dictionary<string, object>()
-            };
-            setVoltage.ExpectedResults["mode"] = "tolerance";
-            setVoltage.ExpectedResults["key"] = "voltage";
-            setVoltage.ExpectedResults["target"] = 12;
-            setVoltage.ExpectedResults["tolerance"] = 0.5;
-            def.Steps.Add(setVoltage);
+        //    var setVoltage = new StepConfig
+        //    {
+        //        Name = "set_voltage",
+        //        Description = "设置电流",
+        //        Target = "power_supply_1",
+        //        Command = "set_voltage",
+        //        Parameters = new Dictionary<string, object>(),
+        //        ExpectedResults = new Dictionary<string, object>()
+        //    };
+        //    setVoltage.ExpectedResults["mode"] = "tolerance";
+        //    setVoltage.ExpectedResults["key"] = "voltage";
+        //    setVoltage.ExpectedResults["target"] = 12;
+        //    setVoltage.ExpectedResults["tolerance"] = 0.5;
+        //    def.Steps.Add(setVoltage);
 
-            var measureCurrent = new StepConfig
-            {
-                Name = "measure_current",
-                Description = "设置电阻",
-                Target = "current_meter_1",
-                Command = "measure",
-                Parameters = new Dictionary<string, object>(),
-                ExpectedResults = new Dictionary<string, object>()
-            };
-            measureCurrent.ExpectedResults["mode"] = "range";
-            measureCurrent.ExpectedResults["key"] = "current";
-            measureCurrent.ExpectedResults["min"] = 0.5;
-            measureCurrent.ExpectedResults["max"] = 2.0;
-            def.Steps.Add(measureCurrent);
+        //    var measureCurrent = new StepConfig
+        //    {
+        //        Name = "measure_current",
+        //        Description = "设置电阻",
+        //        Target = "current_meter_1",
+        //        Command = "measure",
+        //        Parameters = new Dictionary<string, object>(),
+        //        ExpectedResults = new Dictionary<string, object>()
+        //    };
+        //    measureCurrent.ExpectedResults["mode"] = "range";
+        //    measureCurrent.ExpectedResults["key"] = "current";
+        //    measureCurrent.ExpectedResults["min"] = 0.5;
+        //    measureCurrent.ExpectedResults["max"] = 2.0;
+        //    def.Steps.Add(measureCurrent);
 
-            return def;
-        }
+        //    return def;
+        //}
     }
 
     /// <summary>
     ///     基于 JSON/代码定义生成的 WorkflowCore 工作流包装器。
     ///     仅包含一个 <see cref="RunSubFlowStep"/>，真正的执行逻辑在 <see cref="SubFlowExecutor"/> 内部完成。
     /// </summary>
-    internal sealed class JsonSubFlowWorkflow : IWorkflow<FlowData>
+    internal sealed class JsonSubFlowWorkflow : IWorkflow<FlowModels>
     {
         private readonly StepConfig _definition;
 
@@ -213,7 +214,7 @@ namespace ZL.WorkflowLib.Workflow.Flows
             get { return 1; }
         }
 
-        public void Build(IWorkflowBuilder<FlowData> builder)
+        public void Build(IWorkflowBuilder<FlowModels> builder)
         {
             builder
                 .StartWith<RunSubFlowStep>()
@@ -289,7 +290,7 @@ namespace ZL.WorkflowLib.Workflow.Flows
 
         public override ExecutionResult Run(IStepExecutionContext context)
         {
-            var data = context != null ? context.Workflow.Data as FlowData : null;
+            var data = context != null ? context.Workflow.Data as FlowModels : null;
             if (data == null)
                 throw new InvalidOperationException("子流程执行缺少 FlowData 数据上下文");
 

@@ -29,6 +29,9 @@
 		<None Update="Entities.sql">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
+		<None Update="Flows\E312.json">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 		<None Update="infrastructure.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using WorkflowCore.Interface;
 using WorkflowCore.Models;
@@ -9,12 +8,12 @@ using ZL.WorkflowLib.Engine;
 
 namespace ZL.WorkflowLib.Workflow
 {
-    public sealed class DynamicLoopWorkflow : IWorkflow<FlowData>
+    public sealed class WorkflowBuild : IWorkflow<FlowModels>
     {
         private readonly FlowConfig _config;
         private readonly string _id;
 
-        public DynamicLoopWorkflow(FlowConfig config)
+        public WorkflowBuild(FlowConfig config)
         {
             if (config == null) throw new ArgumentNullException("config");
             if (config.TestSteps == null) config.TestSteps = new List<StepConfig>();
@@ -26,14 +25,14 @@ namespace ZL.WorkflowLib.Workflow
                 UiEventBus.PublishLog("[DEBUG] Step: " + step.Name + ", Type=" + step.Type + ", OnSuccess=" + step.OnSuccess + ", OnFailure=" + step.OnFailure);
             }
 
-            var model = string.IsNullOrWhiteSpace(config.Model) ? "unknown" : config.Model.Trim();
-            _id = "dyn:" + model;
+            //var model = string.IsNullOrWhiteSpace(config.Model) ? "unknown" : config.Model.Trim();
+            _id = config.Id;
         }
 
         public string Id { get { return _id; } }
-        public int Version { get { return 1; } }
+        public int Version { get { return WorkflowServices.WorkflowVersion; } }
 
-        public void Build(IWorkflowBuilder<FlowData> builder)
+        public void Build(IWorkflowBuilder<FlowModels> builder)
         {
             if (builder == null)
                 throw new ArgumentNullException("builder");
@@ -41,10 +40,14 @@ namespace ZL.WorkflowLib.Workflow
             var init = builder.StartWith<InitStep>();
             var stepList = _config.TestSteps;
             var pipelines = new Dictionary<string, StepPipeline>(StringComparer.OrdinalIgnoreCase);
-            IStepBuilder<FlowData, TransitionStep> lastTransition = null;
+            IStepBuilder<FlowModels, TransitionStep> lastTransition = null;
 
             // 全局边表（去重用）
             var edges = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            // 记录每对源/目标节点对应的字段来源，便于精准提示重复连边
+            var edgeFieldMap = new Dictionary<string, Dictionary<string, HashSet<string>>>(StringComparer.OrdinalIgnoreCase);
+            // 记录每个目标节点的唯一前驱集合，用于统计真实入边数量
+            var incomingMap = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
 
             // 1) 构建 pipeline
             for (int i = 0; i < stepList.Count; i++)
@@ -71,6 +74,8 @@ namespace ZL.WorkflowLib.Workflow
                 init.Input<int?>(s => s.FirstStepId, data => stepId);
                 init.Input<string>(s => s.FirstStepName, data => stepName);
 
+                // 先彻底清掉系统默认的 NextStep/Outcomes，再构建自定义的起点边
+                ClearNextStepAndOutcomes(init);
                 // 仅保留 Outcome 路由
                 AddOutcomeMapping(init, stepId, stepId);
                 ClearNextStep(init); // 修复：真正清掉 init 的默认 Next
@@ -84,7 +89,7 @@ namespace ZL.WorkflowLib.Workflow
             // 3) 配置 Transition（成功/失败）
             foreach (var pipe in pipelines.Values)
             {
-                ConfigureTransition(pipe, pipelines, edges);
+                ConfigureTransition(pipe, pipelines, edges, edgeFieldMap, incomingMap);
             }
 
             // 4) 处理 DependsOn（多前驱）
@@ -103,7 +108,8 @@ namespace ZL.WorkflowLib.Workflow
                     var depPipe = pipelines[dep];
                     if (depPipe.EntryId.HasValue && pipe.EntryId.HasValue)
                     {
-                        // 统一 AddEdge（自动去重 + 添加 Outcome 映射）
+                        // 先记录字段来源，再统一 AddEdge（自动去重 + 添加 Outcome 映射）
+                        RecordEdgeField(edgeFieldMap, incomingMap, dep, cfg.Name, "DependsOn");
                         AddEdge(dep, cfg.Name, depPipe, pipe, edges);
                     }
                 }
@@ -115,36 +121,46 @@ namespace ZL.WorkflowLib.Workflow
                 ClearNextStep(pipe.Transition);
             }
 
-            // 5) 检查入度（提示 JSON 冗余）
-            foreach (var p in pipelines.Values)
+            // 5) 检查入度（提示 JSON 冗余）：聚焦同一对节点被多个字段重复连边的情况
+            foreach (var fromEntry in edgeFieldMap)
             {
-                int incoming = 0;
-                foreach (var q in pipelines.Values)
+                var fromName = fromEntry.Key;
+                var toDict = fromEntry.Value;
+                if (toDict == null)
+                    continue;
+
+                foreach (var toEntry in toDict)
                 {
-                    if (string.Equals(q.Config.OnSuccess, p.Config.Name, StringComparison.OrdinalIgnoreCase)) incoming++;
-                    if (string.Equals(q.Config.OnFailure, p.Config.Name, StringComparison.OrdinalIgnoreCase)) incoming++;
-                    if (p.Config.DependsOn != null && p.Config.DependsOn.Contains(q.Config.Name, StringComparer.OrdinalIgnoreCase)) incoming++;
-                }
-                if (incoming > 1)
-                {
-                    UiEventBus.PublishLog("[BuildCheck] Step=" + p.Config.Name + " 入边数=" + incoming + "，请检查 JSON 是否存在重复 DependsOn 与 OnSuccess/OnFailure");
+                    var toName = toEntry.Key;
+                    var fieldSet = toEntry.Value;
+                    if (fieldSet == null || fieldSet.Count <= 1)
+                        continue;
+
+                    // 仅包含 OnSuccess/OnFailure 的情况视为正常配置，直接跳过
+                    if (fieldSet.Count == 2 && fieldSet.Contains("OnSuccess") && fieldSet.Contains("OnFailure"))
+                        continue;
+
+                    HashSet<string> incomingSet;
+                    int uniqueIncoming = incomingMap.TryGetValue(toName, out incomingSet) && incomingSet != null ? incomingSet.Count : 0;
+                    var fieldList = string.Join("、", fieldSet);
+                    UiEventBus.PublishLog("[BuildCheck] " + fromName + " -> " + toName + " 同时通过字段 " + fieldList + " 连边，目标唯一入边数=" + uniqueIncoming + "，请检查配置是否存在冗余。");
                 }
             }
         }
 
-        private static StepPipeline BuildPipeline<TPrev>(IStepBuilder<FlowData, TPrev> previous, StepConfig stepConfig)
+        private static StepPipeline BuildPipeline<TPrev>(IStepBuilder<FlowModels, TPrev> previous, StepConfig stepConfig)
             where TPrev : StepBody
         {
             var entry = previous.Then<ResolveStepContextStep>();
             // 这里通过显式清空上一节点的 NextStep，确保每次链式构建都以手动配置的跳转为准
-            ClearNextStep(previous);
+            ClearNextStepAndOutcomes(previous);
             entry.Input<StepConfig>(step => step.StepConfig, data => stepConfig);
 
             string type = (stepConfig != null && !string.IsNullOrWhiteSpace(stepConfig.Type))
                 ? stepConfig.Type.Trim()
                 : "Normal";
 
-            IStepBuilder<FlowData, TransitionStep> transition;
+            IStepBuilder<FlowModels, TransitionStep> transition;
 
             if (string.Equals(type, "SubFlow", StringComparison.OrdinalIgnoreCase))
             {
@@ -222,7 +238,12 @@ namespace ZL.WorkflowLib.Workflow
             };
         }
 
-        private static void ConfigureTransition(StepPipeline pipeline, IDictionary<string, StepPipeline> pipelines, HashSet<string> edges)
+        private static void ConfigureTransition(
+            StepPipeline pipeline,
+            IDictionary<string, StepPipeline> pipelines,
+            HashSet<string> edges,
+            Dictionary<string, Dictionary<string, HashSet<string>>> edgeFieldMap,
+            Dictionary<string, HashSet<string>> incomingMap)
         {
             if (pipeline == null || pipeline.Transition == null)
                 return;
@@ -248,6 +269,8 @@ namespace ZL.WorkflowLib.Workflow
                 StepPipeline toPipe;
                 if (pipelines.TryGetValue(success.StepName, out toPipe))
                 {
+                    // 记录成功路由触发的连边来源，方便后续定位重复连边问题
+                    RecordEdgeField(edgeFieldMap, incomingMap, cfg.Name, success.StepName, "OnSuccess");
                     AddEdge(cfg.Name, success.StepName, pipeline, toPipe, edges);
                 }
                 // 保留原 Input
@@ -259,6 +282,8 @@ namespace ZL.WorkflowLib.Workflow
                 StepPipeline toPipe2;
                 if (pipelines.TryGetValue(failure.StepName, out toPipe2))
                 {
+                    // 记录失败路由触发的连边来源，方便后续定位重复连边问题
+                    RecordEdgeField(edgeFieldMap, incomingMap, cfg.Name, failure.StepName, "OnFailure");
                     AddEdge(cfg.Name, failure.StepName, pipeline, toPipe2, edges);
                 }
                 // 保留原 Input
@@ -298,7 +323,44 @@ namespace ZL.WorkflowLib.Workflow
                 UiEventBus.PublishLog("[BuildDedup] 跳过重复边 " + fromName + " -> " + toName);
             }
         }
+        /// <summary>
+        /// 记录某一对源/目标节点是通过哪个字段建立的连边，并同步维护目标节点的唯一入边集合。
+        /// </summary>
+        private static void RecordEdgeField(
+            Dictionary<string, Dictionary<string, HashSet<string>>> edgeFieldMap,
+            Dictionary<string, HashSet<string>> incomingMap,
+            string fromName,
+            string toName,
+            string fieldName)
+        {
+            if (edgeFieldMap == null || incomingMap == null)
+                return;
+            if (string.IsNullOrWhiteSpace(fromName) || string.IsNullOrWhiteSpace(toName) || string.IsNullOrWhiteSpace(fieldName))
+                return;
 
+            Dictionary<string, HashSet<string>> toDict;
+            if (!edgeFieldMap.TryGetValue(fromName, out toDict) || toDict == null)
+            {
+                toDict = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+                edgeFieldMap[fromName] = toDict;
+            }
+
+            HashSet<string> fieldSet;
+            if (!toDict.TryGetValue(toName, out fieldSet) || fieldSet == null)
+            {
+                fieldSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                toDict[toName] = fieldSet;
+            }
+            fieldSet.Add(fieldName);
+
+            HashSet<string> incomingSet;
+            if (!incomingMap.TryGetValue(toName, out incomingSet) || incomingSet == null)
+            {
+                incomingSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                incomingMap[toName] = incomingSet;
+            }
+            incomingSet.Add(fromName);
+        }
         // ===== 其余辅助方法保持不变（仅修正 ClearNextStep 以适配 NextStepId） =====
 
         private static StepPipeline ResolveFirstPipeline(IList<StepConfig> steps, IDictionary<string, StepPipeline> pipelines)
@@ -348,7 +410,7 @@ namespace ZL.WorkflowLib.Workflow
             return new StepTarget { StepId = null, StepName = targetName, Exists = false };
         }
 
-        private static void AddOutcomeMapping<TStep>(IStepBuilder<FlowData, TStep> from, int outcomeValue, int nextStepId) where TStep : StepBody
+        private static void AddOutcomeMapping<TStep>(IStepBuilder<FlowModels, TStep> from, int outcomeValue, int nextStepId) where TStep : StepBody
         {
             if (from == null) return;
             var stepProp = from.GetType().GetProperty("Step");
@@ -369,7 +431,7 @@ namespace ZL.WorkflowLib.Workflow
             outcomes.Add(vo);
         }
 
-        private static void ClearNextStep<TStep>(IStepBuilder<FlowData, TStep> from) where TStep : StepBody
+        private static void ClearNextStep<TStep>(IStepBuilder<FlowModels, TStep> from, bool clearOutcomes = false) where TStep : StepBody
         {
             if (from == null) return;
             var stepProp = from.GetType().GetProperty("Step");
@@ -399,9 +461,28 @@ namespace ZL.WorkflowLib.Workflow
                 }
                 nextIdProp.SetValue(stepObj, nextIdValue, null);
             }
+            if (clearOutcomes)
+            {
+                var outcomesProp = stepObj.GetType().GetProperty("Outcomes");
+                if (outcomesProp != null)
+                {
+                    var outcomes = outcomesProp.GetValue(stepObj, null) as IList<IStepOutcome>;
+                    if (outcomes != null)
+                    {
+                        // 清理掉默认生成的 Outcome，确保后续 AddOutcomeMapping 只基于自定义逻辑
+                        outcomes.Clear();
+                    }
+                }
+            }
         }
 
-        private static int? TryGetStepId<TStep>(IStepBuilder<FlowData, TStep> builder) where TStep : StepBody
+        private static void ClearNextStepAndOutcomes<TStep>(IStepBuilder<FlowModels, TStep> from) where TStep : StepBody
+        {
+            // 提供一个显式入口，一次性清理 NextStep/NextStepId 以及默认 Outcomes
+            ClearNextStep(from, true);
+        }
+
+        private static int? TryGetStepId<TStep>(IStepBuilder<FlowModels, TStep> builder) where TStep : StepBody
         {
             if (builder == null) return null;
             var stepProp = builder.GetType().GetProperty("Step");
@@ -418,9 +499,9 @@ namespace ZL.WorkflowLib.Workflow
         private sealed class StepPipeline
         {
             public StepConfig Config { get; set; }
-            public IStepBuilder<FlowData, ResolveStepContextStep> Entry { get; set; }
+            public IStepBuilder<FlowModels, ResolveStepContextStep> Entry { get; set; }
             public int? EntryId { get; set; }
-            public IStepBuilder<FlowData, TransitionStep> Transition { get; set; }
+            public IStepBuilder<FlowModels, TransitionStep> Transition { get; set; }
         }
 
         private sealed class StepTarget
@@ -430,7 +511,7 @@ namespace ZL.WorkflowLib.Workflow
             public bool Exists { get; set; }
         }
 
-        private static RetryOptions BuildMainRetryOptions(FlowData data)
+        private static RetryOptions BuildMainRetryOptions(FlowModels data)
         {
             var spec = data != null && data.CurrentExecution != null ? data.CurrentExecution.Specification : null;
             if (spec == null || spec.MainRetry == null)
@@ -438,7 +519,7 @@ namespace ZL.WorkflowLib.Workflow
             return new RetryOptions { Attempts = spec.MainRetry.Attempts, DelayMs = spec.MainRetry.DelayMs };
         }
 
-        private static DelayOptions BuildMainDelayOptions(FlowData data)
+        private static DelayOptions BuildMainDelayOptions(FlowModels data)
         {
             var spec = data != null && data.CurrentExecution != null ? data.CurrentExecution.Specification : null;
             if (spec == null)
@@ -446,7 +527,7 @@ namespace ZL.WorkflowLib.Workflow
             return new DelayOptions { PreDelayMs = spec.PreDelayMs, PostDelayMs = spec.PostDelayMs };
         }
 
-        private static bool ShouldRunParallel(FlowData data)
+        private static bool ShouldRunParallel(FlowModels data)
         {
             if (data == null || data.CurrentExecution == null || data.CurrentExecution.Specification == null)
                 return false;
@@ -458,7 +539,7 @@ namespace ZL.WorkflowLib.Workflow
             return spec.Mode == ExecMode.Parallel || spec.Mode == ExecMode.ExtrasFirst;
         }
 
-        private static bool ShouldRunMainSequentially(FlowData data)
+        private static bool ShouldRunMainSequentially(FlowModels data)
         {
             if (data == null || data.CurrentExecution == null || data.CurrentExecution.Specification == null)
                 return true;

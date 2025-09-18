@@ -1,18 +1,20 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using WorkflowCore.Interface;
 using ZL.DeviceLib;
 using ZL.DeviceLib.Devices;
 using ZL.DeviceLib.Engine;
 using ZL.DeviceLib.Models;
+using ZL.WorkflowLib;
 using ZL.WorkflowLib.Engine;
 using ZL.WorkflowLib.Workflow;
 using ZL.WorkflowLib.Workflow.Flows;
+using ZL.WorkflowLib.Workflow.Lite;
 
 namespace TestFlowDemo.Tests.Helpers
 {
@@ -40,7 +42,7 @@ namespace TestFlowDemo.Tests.Helpers
             SubflowDefinitionCatalog.Initialize(WorkflowServices.Subflows);
             WorkflowServices.WorkflowHost = _host;
 
-            _host.RegisterWorkflow<DynamicLoopWorkflow, FlowData>();
+            _host.RegisterWorkflow<WorkflowBuildLite, FlowModels>();
             SubflowDefinitionCatalog.RegisterWorkflows(_host, WorkflowServices.Subflows);
             _host.Start();
 
@@ -102,7 +104,7 @@ namespace TestFlowDemo.Tests.Helpers
                 FakeDeviceRegistry.Configure(kv.Key, kv.Value);
             }
 
-            DeviceServices.Config = config;
+            WorkflowServices.FlowCfg = config;
             var cts = new CancellationTokenSource();
             DeviceServices.Context = new StepContext(config.Model, cts.Token);
 
@@ -116,7 +118,7 @@ namespace TestFlowDemo.Tests.Helpers
             }
             UiEventBus.WorkflowCompleted += CompletedHandler;
 
-            var data = new FlowData
+            var data = new FlowModels
             {
                 Model = config.Model,
                 Sn = $"{config.Model}-SN",

@@ -29,7 +29,7 @@ namespace ZL.WorkflowLib.Engine
             };
         }
 
-        public static Dictionary<string, object> ResolveParameters(StepConfig stepCfg, FlowData data)
+        public static Dictionary<string, object> ResolveParameters(StepConfig stepCfg, FlowModels data)
         {
             if (stepCfg == null) throw new ArgumentNullException(nameof(stepCfg));
             bool hasFromDb = (stepCfg.Parameters != null) && stepCfg.Parameters.ContainsKey("@from_db");
@@ -50,13 +50,10 @@ namespace ZL.WorkflowLib.Engine
             return new Dictionary<string, object>();
         }
 
-        public static StepConfig BuildExecutableStep(StepConfig stepCfg, FlowData data)
+        public static StepConfig BuildExecutableStep(StepConfig stepCfg, FlowModels data)
         {
             var effectiveParams = ResolveParameters(stepCfg, data);
             var step = CloneWithParams(stepCfg, effectiveParams);
-            // 语义泛化：若未提供 Device，使用 Target 作为设备键
-            if (string.IsNullOrWhiteSpace(step.Target) && !string.IsNullOrWhiteSpace(step.Target))
-                step.Target = step.Target;
             return step;
         }
     }

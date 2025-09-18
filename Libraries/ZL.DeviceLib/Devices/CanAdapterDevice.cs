@@ -62,8 +62,7 @@ namespace ZL.DeviceLib.Devices
                     else if (canFilterObj is string str)
                     {
                         // 情况 2: 配置成了逗号分隔的字符串
-                        can_filter_allowed_ids = str.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
-                                                    .Select(s => s.Trim()).ToArray();
+                        can_filter_allowed_ids = str.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray();
                     }
                 }
                 catch (Exception ex)

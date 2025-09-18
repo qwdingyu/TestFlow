@@ -12,6 +12,7 @@ using ZL.WorkflowLib;
 using ZL.WorkflowLib.Engine;
 using ZL.WorkflowLib.Workflow;
 using ZL.WorkflowLib.Workflow.Flows;
+using ZL.WorkflowLib.Workflow.Lite;
 
 namespace Cli.Commands
 {
@@ -92,7 +93,7 @@ namespace Cli.Commands
             IServiceProvider provider = services.BuildServiceProvider();
             WorkflowCore.Interface.IWorkflowHost host = provider.GetService<WorkflowCore.Interface.IWorkflowHost>();
             WorkflowServices.WorkflowHost = host;
-            host.RegisterWorkflow<DynamicLoopWorkflow, FlowData>();
+            host.RegisterWorkflow<WorkflowBuildLite, FlowModels>();
             SubflowDefinitionCatalog.RegisterWorkflows(host, WorkflowServices.Subflows);
             host.Start();
 

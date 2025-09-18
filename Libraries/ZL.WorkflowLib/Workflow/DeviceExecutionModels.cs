@@ -154,7 +154,7 @@ namespace ZL.WorkflowLib.Workflow
 
                     var extra = new ExtraDeviceSpec
                     {
-                        Device = extraObj.Value<string>("device"),
+                        Target = extraObj.Value<string>("device"),
                         Command = extraObj.Value<string>("command"),
                         Alias = extraObj.Value<string>("alias"),
                         TimeoutMs = extraObj.Value<int?>("timeoutMs") ?? 0,
@@ -173,7 +173,7 @@ namespace ZL.WorkflowLib.Workflow
                         };
                     }
 
-                    if (string.IsNullOrWhiteSpace(extra.Device) || string.IsNullOrWhiteSpace(extra.Command))
+                    if (string.IsNullOrWhiteSpace(extra.Target) || string.IsNullOrWhiteSpace(extra.Command))
                     {
                         var warnMsg = $"[BuildPlan] extras[{currentIndex}] 缺少 device 或 command，已忽略该节点";
                         LogHelper.Warn(warnMsg);
@@ -287,7 +287,7 @@ namespace ZL.WorkflowLib.Workflow
 
     public class ExtraDeviceSpec
     {
-        public string Device { get; set; }
+        public string Target { get; set; }
         public string Command { get; set; }
         public string Alias { get; set; }
         public int TimeoutMs { get; set; }
@@ -302,6 +302,23 @@ namespace ZL.WorkflowLib.Workflow
         public int Attempts { get; set; }
         public int DelayMs { get; set; }
     }
+
+    /// <summary>
+    ///     窗口化执行策略定义，支持对齐或循环执行的参数配置。
+    /// </summary>
+    public sealed class WindowSpec
+    {
+        /// <summary>
+        ///     重复执行次数，等于 1 时表示不进行额外重复。
+        /// </summary>
+        public int Repeat { get; set; }
+
+        /// <summary>
+        ///     每次重复之间的等待间隔，单位毫秒。
+        /// </summary>
+        public int IntervalMs { get; set; }
+    }
+
 
     public enum ExecMode
     {
