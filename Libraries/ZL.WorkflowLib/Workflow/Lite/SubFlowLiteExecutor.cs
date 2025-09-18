@@ -283,7 +283,7 @@ namespace ZL.WorkflowLib.Workflow
         /// <param name="stepCfg">子流程定义（Type=SubFlow 或实际展开后的引用）。</param>
         /// <param name="data">当前流程上下文数据。</param>
         /// <param name="parentStepCfg">父步骤配置，用于日志中输出下一步信息。</param>
-        public void RunSubFlow(StepConfig stepCfg, FlowModels data, StepConfig parentStepCfg)
+        public void RunSubFlow(StepConfig stepCfg, FlowModel data, StepConfig parentStepCfg)
         {
             if (stepCfg == null)
                 throw new ArgumentNullException(nameof(stepCfg));
@@ -337,7 +337,7 @@ namespace ZL.WorkflowLib.Workflow
         /// </summary>
         /// <param name="stepCfg">原始的子流程定义（包含 Steps）。</param>
         /// <param name="data">流程运行时数据，用于参数解析与模型上下文。</param>
-        private static OrchestrationPlan BuildPlan(StepConfig stepCfg, FlowModels data)
+        private static OrchestrationPlan BuildPlan(StepConfig stepCfg, FlowModel data)
         {
             var plan = new OrchestrationPlan { Name = stepCfg.Name };
             var nameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -357,7 +357,7 @@ namespace ZL.WorkflowLib.Workflow
         /// <param name="prefix">层级前缀，形如 parent.child。</param>
         /// <param name="nameMap">名称映射表，用于后续依赖解析。</param>
         /// <param name="usedIds">已使用的任务 Id 集，避免冲突。</param>
-        private static void AppendSubSteps(StepConfig container, FlowModels data, OrchestrationPlan plan, string prefix, Dictionary<string, string> nameMap, HashSet<string> usedIds)
+        private static void AppendSubSteps(StepConfig container, FlowModel data, OrchestrationPlan plan, string prefix, Dictionary<string, string> nameMap, HashSet<string> usedIds)
         {
             if (container?.Steps == null)
                 return;
@@ -603,7 +603,7 @@ namespace ZL.WorkflowLib.Workflow
         /// <param name="task">当前编排任务（包含步骤配置）。</param>
         /// <param name="result">编排执行结果。</param>
         /// <param name="data">流程上下文，用于读取 Session/Model 等信息。</param>
-        private static void PersistTaskResult(OrchTask task, OrchTaskResult result, FlowModels data)
+        private static void PersistTaskResult(OrchTask task, OrchTaskResult result, FlowModel data)
         {
             if (task?.Step == null || data == null)
                 return;

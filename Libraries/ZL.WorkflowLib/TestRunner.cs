@@ -30,7 +30,7 @@ namespace ZL.WorkflowLib
             WorkflowServices.WorkflowHost = _host; // 记录全局 Host，供子流程调度
             SubflowDefinitionCatalog.RegisterWorkflows(_host, WorkflowServices.Subflows);
             if (_useLite)
-                _host.RegisterWorkflow<WorkflowBuildLite, FlowModels>();
+                _host.RegisterWorkflow<WorkflowBuildLite, FlowModel>();
 
             _host.Start();  // 必须调用，而且要在 StartWorkflow 之前
             _host.OnStepError += (workflow, step, ex) =>
@@ -85,7 +85,7 @@ namespace ZL.WorkflowLib
             // 1) 加载配置
             var cfg = ConfigManager.Instance.GetFlowConfig(model);
             WorkflowServices.FlowCfg = cfg;
-            var flowData = new FlowModels { Model = model, Sn = barcode, Cancellation = cts.Token };
+            var flowData = new FlowModel { Model = model, Sn = barcode, Cancellation = cts.Token };
             string runId = "";
             if (_useLite)
             {

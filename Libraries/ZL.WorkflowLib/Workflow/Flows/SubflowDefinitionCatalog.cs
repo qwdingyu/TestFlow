@@ -188,7 +188,7 @@ namespace ZL.WorkflowLib.Workflow.Flows
     ///     基于 JSON/代码定义生成的 WorkflowCore 工作流包装器。
     ///     仅包含一个 <see cref="RunSubFlowStep"/>，真正的执行逻辑在 <see cref="SubFlowExecutor"/> 内部完成。
     /// </summary>
-    internal sealed class JsonSubFlowWorkflow : IWorkflow<FlowModels>
+    internal sealed class JsonSubFlowWorkflow : IWorkflow<FlowModel>
     {
         private readonly StepConfig _definition;
 
@@ -214,7 +214,7 @@ namespace ZL.WorkflowLib.Workflow.Flows
             get { return 1; }
         }
 
-        public void Build(IWorkflowBuilder<FlowModels> builder)
+        public void Build(IWorkflowBuilder<FlowModel> builder)
         {
             builder
                 .StartWith<RunSubFlowStep>()
@@ -290,7 +290,7 @@ namespace ZL.WorkflowLib.Workflow.Flows
 
         public override ExecutionResult Run(IStepExecutionContext context)
         {
-            var data = context != null ? context.Workflow.Data as FlowModels : null;
+            var data = context != null ? context.Workflow.Data as FlowModel : null;
             if (data == null)
                 throw new InvalidOperationException("子流程执行缺少 FlowData 数据上下文");
 

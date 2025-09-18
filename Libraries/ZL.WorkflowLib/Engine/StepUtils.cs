@@ -29,7 +29,7 @@ namespace ZL.WorkflowLib.Engine
             };
         }
 
-        public static Dictionary<string, object> ResolveParameters(StepConfig stepCfg, FlowModels data)
+        public static Dictionary<string, object> ResolveParameters(StepConfig stepCfg, FlowModel data)
         {
             if (stepCfg == null) throw new ArgumentNullException(nameof(stepCfg));
             bool hasFromDb = (stepCfg.Parameters != null) && stepCfg.Parameters.ContainsKey("@from_db");
@@ -50,7 +50,7 @@ namespace ZL.WorkflowLib.Engine
             return new Dictionary<string, object>();
         }
 
-        public static StepConfig BuildExecutableStep(StepConfig stepCfg, FlowModels data)
+        public static StepConfig BuildExecutableStep(StepConfig stepCfg, FlowModel data)
         {
             var effectiveParams = ResolveParameters(stepCfg, data);
             var step = CloneWithParams(stepCfg, effectiveParams);

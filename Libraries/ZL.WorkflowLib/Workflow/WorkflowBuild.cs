@@ -8,7 +8,7 @@ using ZL.WorkflowLib.Engine;
 
 namespace ZL.WorkflowLib.Workflow
 {
-    public sealed class WorkflowBuild : IWorkflow<FlowModels>
+    public sealed class WorkflowBuild : IWorkflow<FlowModel>
     {
         private readonly FlowConfig _config;
         private readonly string _id;
@@ -32,7 +32,7 @@ namespace ZL.WorkflowLib.Workflow
         public string Id { get { return _id; } }
         public int Version { get { return WorkflowServices.WorkflowVersion; } }
 
-        public void Build(IWorkflowBuilder<FlowModels> builder)
+        public void Build(IWorkflowBuilder<FlowModel> builder)
         {
             if (builder == null)
                 throw new ArgumentNullException("builder");
@@ -40,7 +40,7 @@ namespace ZL.WorkflowLib.Workflow
             var init = builder.StartWith<InitStep>();
             var stepList = _config.TestSteps;
             var pipelines = new Dictionary<string, StepPipeline>(StringComparer.OrdinalIgnoreCase);
-            IStepBuilder<FlowModels, TransitionStep> lastTransition = null;
+            IStepBuilder<FlowModel, TransitionStep> lastTransition = null;
 
             // 全局边表（去重用）
             var edges = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -148,7 +148,7 @@ namespace ZL.WorkflowLib.Workflow
             }
         }
 
-        private static StepPipeline BuildPipeline<TPrev>(IStepBuilder<FlowModels, TPrev> previous, StepConfig stepConfig)
+        private static StepPipeline BuildPipeline<TPrev>(IStepBuilder<FlowModel, TPrev> previous, StepConfig stepConfig)
             where TPrev : StepBody
         {
             var entry = previous.Then<ResolveStepContextStep>();
@@ -160,7 +160,7 @@ namespace ZL.WorkflowLib.Workflow
                 ? stepConfig.Type.Trim()
                 : "Normal";
 
-            IStepBuilder<FlowModels, TransitionStep> transition;
+            IStepBuilder<FlowModel, TransitionStep> transition;
 
             if (string.Equals(type, "SubFlow", StringComparison.OrdinalIgnoreCase))
             {
@@ -410,7 +410,7 @@ namespace ZL.WorkflowLib.Workflow
             return new StepTarget { StepId = null, StepName = targetName, Exists = false };
         }
 
-        private static void AddOutcomeMapping<TStep>(IStepBuilder<FlowModels, TStep> from, int outcomeValue, int nextStepId) where TStep : StepBody
+        private static void AddOutcomeMapping<TStep>(IStepBuilder<FlowModel, TStep> from, int outcomeValue, int nextStepId) where TStep : StepBody
         {
             if (from == null) return;
             var stepProp = from.GetType().GetProperty("Step");
@@ -431,7 +431,7 @@ namespace ZL.WorkflowLib.Workflow
             outcomes.Add(vo);
         }
 
-        private static void ClearNextStep<TStep>(IStepBuilder<FlowModels, TStep> from, bool clearOutcomes = false) where TStep : StepBody
+        private static void ClearNextStep<TStep>(IStepBuilder<FlowModel, TStep> from, bool clearOutcomes = false) where TStep : StepBody
         {
             if (from == null) return;
             var stepProp = from.GetType().GetProperty("Step");
@@ -476,13 +476,13 @@ namespace ZL.WorkflowLib.Workflow
             }
         }
 
-        private static void ClearNextStepAndOutcomes<TStep>(IStepBuilder<FlowModels, TStep> from) where TStep : StepBody
+        private static void ClearNextStepAndOutcomes<TStep>(IStepBuilder<FlowModel, TStep> from) where TStep : StepBody
         {
             // 提供一个显式入口，一次性清理 NextStep/NextStepId 以及默认 Outcomes
             ClearNextStep(from, true);
         }
 
-        private static int? TryGetStepId<TStep>(IStepBuilder<FlowModels, TStep> builder) where TStep : StepBody
+        private static int? TryGetStepId<TStep>(IStepBuilder<FlowModel, TStep> builder) where TStep : StepBody
         {
             if (builder == null) return null;
             var stepProp = builder.GetType().GetProperty("Step");
@@ -499,9 +499,9 @@ namespace ZL.WorkflowLib.Workflow
         private sealed class StepPipeline
         {
             public StepConfig Config { get; set; }
-            public IStepBuilder<FlowModels, ResolveStepContextStep> Entry { get; set; }
+            public IStepBuilder<FlowModel, ResolveStepContextStep> Entry { get; set; }
             public int? EntryId { get; set; }
-            public IStepBuilder<FlowModels, TransitionStep> Transition { get; set; }
+            public IStepBuilder<FlowModel, TransitionStep> Transition { get; set; }
         }
 
         private sealed class StepTarget
@@ -511,7 +511,7 @@ namespace ZL.WorkflowLib.Workflow
             public bool Exists { get; set; }
         }
 
-        private static RetryOptions BuildMainRetryOptions(FlowModels data)
+        private static RetryOptions BuildMainRetryOptions(FlowModel data)
         {
             var spec = data != null && data.CurrentExecution != null ? data.CurrentExecution.Specification : null;
             if (spec == null || spec.MainRetry == null)
@@ -519,7 +519,7 @@ namespace ZL.WorkflowLib.Workflow
             return new RetryOptions { Attempts = spec.MainRetry.Attempts, DelayMs = spec.MainRetry.DelayMs };
         }
 
-        private static DelayOptions BuildMainDelayOptions(FlowModels data)
+        private static DelayOptions BuildMainDelayOptions(FlowModel data)
         {
             var spec = data != null && data.CurrentExecution != null ? data.CurrentExecution.Specification : null;
             if (spec == null)
@@ -527,7 +527,7 @@ namespace ZL.WorkflowLib.Workflow
             return new DelayOptions { PreDelayMs = spec.PreDelayMs, PostDelayMs = spec.PostDelayMs };
         }
 
-        private static bool ShouldRunParallel(FlowModels data)
+        private static bool ShouldRunParallel(FlowModel data)
         {
             if (data == null || data.CurrentExecution == null || data.CurrentExecution.Specification == null)
                 return false;
@@ -539,7 +539,7 @@ namespace ZL.WorkflowLib.Workflow
             return spec.Mode == ExecMode.Parallel || spec.Mode == ExecMode.ExtrasFirst;
         }
 
-        private static bool ShouldRunMainSequentially(FlowModels data)
+        private static bool ShouldRunMainSequentially(FlowModel data)
         {
             if (data == null || data.CurrentExecution == null || data.CurrentExecution.Specification == null)
                 return true;

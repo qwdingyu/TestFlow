@@ -49,7 +49,7 @@ namespace ZL.WorkflowLib.Workflow
         /// <summary>
         ///     执行行内子流程（主流程配置中直接展开 Steps）。
         /// </summary>
-        public bool RunInlineSubFlow(StepConfig stepCfg, FlowModels data, StepConfig parentStepCfg)
+        public bool RunInlineSubFlow(StepConfig stepCfg, FlowModel data, StepConfig parentStepCfg)
         {
             return RunSubFlowInternal(stepCfg, data, parentStepCfg);
         }
@@ -57,7 +57,7 @@ namespace ZL.WorkflowLib.Workflow
         /// <summary>
         ///     执行注册表中的子流程（通过 Ref 引用）。
         /// </summary>
-        public bool RunRegisteredSubFlow(string subflowName, FlowModels data, StepConfig parentStepCfg)
+        public bool RunRegisteredSubFlow(string subflowName, FlowModel data, StepConfig parentStepCfg)
         {
             if (string.IsNullOrEmpty(subflowName))
             {
@@ -79,7 +79,7 @@ namespace ZL.WorkflowLib.Workflow
             return RunSubFlowInternal(definition, data, parentStepCfg);
         }
 
-        private bool RunSubFlowInternal(StepConfig definition, FlowModels data, StepConfig parentStepCfg)
+        private bool RunSubFlowInternal(StepConfig definition, FlowModel data, StepConfig parentStepCfg)
         {
             if (definition == null)
                 throw new ArgumentNullException(nameof(definition));
@@ -162,12 +162,12 @@ namespace ZL.WorkflowLib.Workflow
             }
         }
 
-        private static FlowModels CloneFlowData(FlowModels source)
+        private static FlowModel CloneFlowData(FlowModel source)
         {
             if (source == null)
-                return new FlowModels();
+                return new FlowModel();
 
-            return new FlowModels
+            return new FlowModel
             {
                 Model = source.Model,
                 Sn = source.Sn,
@@ -185,7 +185,7 @@ namespace ZL.WorkflowLib.Workflow
         /// <summary>
         ///     WorkflowCore 子流程节点实际调用的执行函数。
         /// </summary>
-        internal static bool ExecuteSequentialSubflow(string subflowName, IList<StepConfig> steps, FlowModels data)
+        internal static bool ExecuteSequentialSubflow(string subflowName, IList<StepConfig> steps, FlowModel data)
         {
             if (data == null)
                 throw new ArgumentNullException(nameof(data));
@@ -234,7 +234,7 @@ namespace ZL.WorkflowLib.Workflow
             return success;
         }
 
-        private static StepContext CreateSharedContext(FlowModels data)
+        private static StepContext CreateSharedContext(FlowModel data)
         {
             var baseModel = data != null ? data.Model : WorkflowServices.FlowCfg != null ? WorkflowServices.FlowCfg.Model : string.Empty;
             var token = data != null ? data.Cancellation : CancellationToken.None;
@@ -295,7 +295,7 @@ namespace ZL.WorkflowLib.Workflow
             return step.Name;
         }
 
-        private static void PersistTaskResult(StepConfig step, OrchTaskResult result, FlowModels data)
+        private static void PersistTaskResult(StepConfig step, OrchTaskResult result, FlowModel data)
         {
             if (step == null || data == null)
                 return;

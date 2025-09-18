@@ -93,7 +93,7 @@ namespace Cli.Commands
             IServiceProvider provider = services.BuildServiceProvider();
             WorkflowCore.Interface.IWorkflowHost host = provider.GetService<WorkflowCore.Interface.IWorkflowHost>();
             WorkflowServices.WorkflowHost = host;
-            host.RegisterWorkflow<WorkflowBuildLite, FlowModels>();
+            host.RegisterWorkflow<WorkflowBuildLite, FlowModel>();
             SubflowDefinitionCatalog.RegisterWorkflows(host, WorkflowServices.Subflows);
             host.Start();
 

@@ -18,7 +18,7 @@ namespace ZL.WorkflowLib.Workflow.Lite
     {
         public override ExecutionResult Run(IStepExecutionContext context)
         {
-            var data = (FlowModels)context.Workflow.Data;
+            var data = (FlowModel)context.Workflow.Data;
             data.WorkflowCompleted = false; data.LastSuccess = true; data.Model = WorkflowServices.FlowCfg.Model;
             foreach (var s in WorkflowServices.FlowCfg.TestSteps)
             {
@@ -40,7 +40,7 @@ namespace ZL.WorkflowLib.Workflow.Lite
     {
         public override ExecutionResult Run(IStepExecutionContext context)
         {
-            var data = (FlowModels)context.Workflow.Data;
+            var data = (FlowModel)context.Workflow.Data;
             if (data.WorkflowCompleted || string.IsNullOrEmpty(data.Current))
                 return ExecutionResult.Next();
 
@@ -587,7 +587,7 @@ namespace ZL.WorkflowLib.Workflow.Lite
     {
         public override ExecutionResult Run(IStepExecutionContext context)
         {
-            var data = (FlowModels)context.Workflow.Data;
+            var data = (FlowModel)context.Workflow.Data;
             if (data.WorkflowCompleted || string.IsNullOrEmpty(data.Current))
                 return ExecutionResult.Next();
             var stepCfg = WorkflowServices.FlowCfg.TestSteps.Find(x => x.Name == data.Current);
@@ -644,7 +644,7 @@ namespace ZL.WorkflowLib.Workflow.Lite
     {
         public override ExecutionResult Run(IStepExecutionContext context)
         {
-            var data = (FlowModels)context.Workflow.Data;
+            var data = (FlowModel)context.Workflow.Data;
             if (data.WorkflowCompleted || string.IsNullOrEmpty(data.Current))
                 return ExecutionResult.Next();
             var stepCfg = WorkflowServices.FlowCfg.TestSteps.Find(x => x.Name == data.Current);
@@ -669,11 +669,11 @@ namespace ZL.WorkflowLib.Workflow.Lite
             return ExecutionResult.Next();
         }
     }
-    public class WorkflowBuildLite : IWorkflow<FlowModels>
+    public class WorkflowBuildLite : IWorkflow<FlowModel>
     {
         public string Id => "WorkflowBuildLite";
         public int Version => 1;
-        public void Build(IWorkflowBuilder<FlowModels> builder)
+        public void Build(IWorkflowBuilder<FlowModel> builder)
         {
             builder
                 .StartWith<InitStep>()

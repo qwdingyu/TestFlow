@@ -14,7 +14,7 @@ namespace ZL.WorkflowLib.Workflow
     /// <summary>
     /// WorkflowCore 中流转的共享数据对象，用于承载当前产品信息、执行状态及步骤上下文。
     /// </summary>
-    public class FlowModels
+    public class FlowModel
     {
         public string Model { get; set; }
         public string Sn { get; set; }
@@ -146,5 +146,7 @@ namespace ZL.WorkflowLib.Workflow
 
 
 }
+
+
 
 

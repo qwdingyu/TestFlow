@@ -42,7 +42,7 @@ namespace TestFlowDemo.Tests.Helpers
             SubflowDefinitionCatalog.Initialize(WorkflowServices.Subflows);
             WorkflowServices.WorkflowHost = _host;
 
-            _host.RegisterWorkflow<WorkflowBuildLite, FlowModels>();
+            _host.RegisterWorkflow<WorkflowBuildLite, FlowModel>();
             SubflowDefinitionCatalog.RegisterWorkflows(_host, WorkflowServices.Subflows);
             _host.Start();
 
@@ -118,7 +118,7 @@ namespace TestFlowDemo.Tests.Helpers
             }
             UiEventBus.WorkflowCompleted += CompletedHandler;
 
-            var data = new FlowModels
+            var data = new FlowModel
             {
                 Model = config.Model,
                 Sn = $"{config.Model}-SN",
