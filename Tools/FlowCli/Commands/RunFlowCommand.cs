@@ -45,7 +45,7 @@ namespace Cli.Commands
             registry.RegisterDatabase("sqlite", delegate(DbOptions opts)
             {
                 // 解析 sqlite 路径，若未提供连接串则使用默认路径
-                return new DatabaseService(DbPathUtil.ResolveSqlitePath(
+                return new DbServices("sqlite", DbPathUtil.ResolveSqlitePath(
                     opts != null ? opts.ConnectionString : null,
                     opts != null ? (opts.DefaultDbPath ?? dbPath) : dbPath,
                     CommandHelper.FindRepoRoot()));
@@ -74,7 +74,7 @@ namespace Cli.Commands
             IDatabaseService db = registry.CreateDatabase(providerType, dbOptions);
             // 将数据库与设备工厂注册到全局服务
             DeviceServices.Db = db;
-            DeviceServices.Factory = new DeviceFactory(dbPath, reportDir);
+            DeviceServices.Factory = new DeviceFactory("sqlite", dbPath, reportDir);
             WorkflowServices.ParamInjector = new ParamInjector(db, 300, "L1", "ST01");
             WorkflowServices.ParamInjector.PreloadAll();
             WorkflowServices.Subflows = new SubflowRegistry();

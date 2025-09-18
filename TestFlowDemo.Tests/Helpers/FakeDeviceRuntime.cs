@@ -37,7 +37,7 @@ namespace TestFlowDemo.Tests.Helpers
         /// <summary>
         ///     核心执行入口：根据配置模拟延迟/成功或失败，并记录时间线信息。
         /// </summary>
-        public DeviceExecResult Execute(string deviceId, StepConfig step, StepContext context, FakeStepBehavior behavior)
+        public ExecutionResult Execute(string deviceId, StepConfig step, StepContext context, FakeStepBehavior behavior)
         {
             behavior ??= FakeStepBehavior.Default;
 
@@ -58,7 +58,7 @@ namespace TestFlowDemo.Tests.Helpers
 
                 if (!behavior.ShouldSucceed)
                 {
-                    return new DeviceExecResult
+                    return new ExecutionResult
                     {
                         Success = false,
                         Message = behavior.FailureMessage,
@@ -77,7 +77,7 @@ namespace TestFlowDemo.Tests.Helpers
                 outputs["device"] = deviceId;
                 outputs["step"] = step.Name;
 
-                return new DeviceExecResult
+                return new ExecutionResult
                 {
                     Success = true,
                     Message = "模拟设备执行成功",
@@ -86,7 +86,7 @@ namespace TestFlowDemo.Tests.Helpers
             }
             catch (OperationCanceledException)
             {
-                return new DeviceExecResult
+                return new ExecutionResult
                 {
                     Success = false,
                     Message = "步骤被取消",

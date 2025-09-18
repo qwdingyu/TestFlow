@@ -46,7 +46,7 @@ namespace TestFlowDemo.Tests.Helpers
             SubflowDefinitionCatalog.RegisterWorkflows(_host, WorkflowServices.Subflows);
             _host.Start();
 
-            _factory = new DeviceFactory(System.IO.Path.GetTempPath(), System.IO.Path.GetTempPath());
+            _factory = new DeviceFactory("sqlite", System.IO.Path.GetTempPath(), System.IO.Path.GetTempPath());
             _factory.Register("fake_device", (f, cfg) => new FakeDevice(cfg));
 
             _database = new FakeDatabaseService();

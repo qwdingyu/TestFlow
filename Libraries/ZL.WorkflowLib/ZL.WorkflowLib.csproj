@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net48;net7.0</TargetFrameworks>
-    <LangVersion>7.0</LangVersion>
+    <LangVersion>8.0</LangVersion>
     <Nullable>disable</Nullable>
     <AssemblyName>ZL.WorkflowLib</AssemblyName>
   </PropertyGroup>

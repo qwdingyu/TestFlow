@@ -1,15 +1,14 @@
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
 
 namespace ZL.DeviceLib.Storage
 {
-    public class DatabaseService : IDatabaseService
+    public class SqliteService : IDatabaseService
     {
         private readonly string _dbPath;
 
-        public DatabaseService(string dbPath)
+        public SqliteService(string dbPath)
         {
             if (string.IsNullOrWhiteSpace(dbPath)) throw new ArgumentNullException(nameof(dbPath));
             // 归一化路径并确保目录存在
@@ -233,3 +232,4 @@ CREATE TABLE IF NOT EXISTS test_params (
         }
     }
 }
+

@@ -42,7 +42,9 @@ namespace ZL.WorkflowLib
             if (!File.Exists(devicesPath))
                 devicesPath = Path.Combine(_baseDir, "Devices.json");
             if (!File.Exists(devicesPath))
-                throw new FileNotFoundException("设备配置文件不存在: devices.json / Devices.json");
+            {
+                LogHelper.Info("设备配置文件不存在: devices.json / Devices.json");
+            }
             // Schema 校验
             Engine.JsonSchemaValidator.ValidateDevicesFile(devicesPath);
             var devicesRoot = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, DeviceConfig>>>(File.ReadAllText(devicesPath));

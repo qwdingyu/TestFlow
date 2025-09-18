@@ -34,8 +34,8 @@ namespace TestFlowDemo.Tests.Helpers
             }
         }
 
-        public IEnumerable<TestParamRow> GetAllActiveParams()
-            => Array.Empty<TestParamRow>();
+        public IEnumerable<DbModel> GetAllActiveParams()
+            => Array.Empty<DbModel>();
 
         public Dictionary<string, object> QueryParamsForModel(string model)
             => new Dictionary<string, object>();

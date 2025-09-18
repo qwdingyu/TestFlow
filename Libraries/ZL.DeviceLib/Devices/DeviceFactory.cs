@@ -9,7 +9,8 @@ namespace ZL.DeviceLib.Devices
 {
     public class DeviceFactory : IDisposable
     {
-        private readonly string _dbPath;
+        private readonly string _dbTypeString;
+        private readonly string _connectionString;
         private readonly string _reportDir;
 
         private readonly ConcurrentDictionary<string, IDevice> _pool = new ConcurrentDictionary<string, IDevice>();
@@ -19,10 +20,14 @@ namespace ZL.DeviceLib.Devices
         private readonly ConcurrentDictionary<string, Func<DeviceFactory, DeviceConfig, IDevice>> _registry =
             new ConcurrentDictionary<string, Func<DeviceFactory, DeviceConfig, IDevice>>(StringComparer.OrdinalIgnoreCase);
 
-        public DeviceFactory(string dbPath, string reportDir, string pluginsDir = null)
+        public DeviceFactory(string dbTypeString, string connectionString, string reportDir = null, string pluginsDir = null)
         {
-            _dbPath = dbPath;
-            _reportDir = reportDir;
+            _dbTypeString = dbTypeString;
+            _connectionString = connectionString;
+            if (string.IsNullOrWhiteSpace(reportDir))
+                _reportDir = "Reports";
+            else
+                _reportDir = reportDir;
 
             // 默认注册内置设备/服务
             Register("scanner", (f, cfg) => new MockScanner(cfg));
@@ -31,7 +36,7 @@ namespace ZL.DeviceLib.Devices
             Register("resistance_meter", (f, cfg) => new MockResistanceMeter(cfg));
             Register("noise_meter", (f, cfg) => new MockNoiseMeter(cfg));
             Register("can_bus", (f, cfg) => new CanAdapterDevice(cfg));
-            Register("database", (f, cfg) => new MockDatabase(cfg, f._dbPath));
+            Register("database", (f, cfg) => new MockDatabase(cfg, f._dbTypeString, f._connectionString));
             Register("report_generator", (f, cfg) => new MockReportGenerator(cfg, f._reportDir));
             Register("system", (f, cfg) => new MockSystem(cfg));
             Register("resistor_box", (f, cfg) => new ResistorBoxDevice(cfg));

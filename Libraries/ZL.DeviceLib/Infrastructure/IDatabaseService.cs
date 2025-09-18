@@ -5,7 +5,7 @@ namespace ZL.DeviceLib.Storage
 {
     public interface IDatabaseService
     {
-        IEnumerable<TestParamRow> GetAllActiveParams();
+        IEnumerable<TestParams> GetAllActiveParams();
         Dictionary<string, object> QueryParamsForModel(string model);
 
         long StartTestSession(string productModel, string barcode);

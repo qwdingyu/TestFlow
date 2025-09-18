@@ -85,7 +85,7 @@ namespace ZL.DeviceLib.Devices
 
         }
 
-        public DeviceExecResult Execute(StepConfig step, StepContext ctx)
+        public ExecutionResult Execute(StepConfig step, StepContext ctx)
         {
             var token = ctx.Cancellation;
             var outputs = new Dictionary<string, object>();
@@ -144,7 +144,7 @@ namespace ZL.DeviceLib.Devices
                     outputs["id"] = resp.Id;
                     outputs["data"] = BitConverter.ToString(resp.Data);
 
-                    return new DeviceExecResult
+                    return new ExecutionResult
                     {
                         Success = true,
                         Message = $"CAN ACK (ID={resp.Id}, DATA={outputs["data"]})",
@@ -206,7 +206,7 @@ namespace ZL.DeviceLib.Devices
                     outputs["power_meter"] = pmTask.Result;
                     outputs["noise"] = micTask.Result;
 
-                    return new DeviceExecResult
+                    return new ExecutionResult
                     {
                         Success = true,
                         Message = $"Heater {level} with measure done",
@@ -218,11 +218,11 @@ namespace ZL.DeviceLib.Devices
             }
             catch (Exception ex)
             {
-                return new DeviceExecResult { Success = false, Message = "CAN Exception: " + ex.Message, Outputs = outputs };
+                return new ExecutionResult { Success = false, Message = "CAN Exception: " + ex.Message, Outputs = outputs };
             }
         }
 
-        private DeviceExecResult Ok(string msg) => new DeviceExecResult { Success = true, Message = msg };
+        private ExecutionResult Ok(string msg) => new ExecutionResult { Success = true, Message = msg };
 
         private byte ParseHex(string s)
         {

@@ -24,7 +24,7 @@ namespace TestFlowDemo.Tests.Helpers
             }
         }
 
-        public DeviceExecResult Execute(StepConfig step, StepContext context)
+        public ExecutionResult Execute(StepConfig step, StepContext context)
         {
             var runtime = FakeDeviceRegistry.Runtime ?? throw new InvalidOperationException("FakeDeviceRuntime 尚未初始化");
             var behavior = FakeDeviceRegistry.GetBehavior(step.Name);

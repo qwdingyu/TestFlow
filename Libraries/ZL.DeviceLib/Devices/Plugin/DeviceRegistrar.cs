@@ -19,10 +19,12 @@ namespace ZL.DeviceLib.Devices.Plugin
 
     public static class DevicePluginLoader
     {
-        public static void LoadFrom(DeviceFactory factory, string dir)
+        public static void LoadFrom(DeviceFactory factory, string dir=null)
         {
             if (factory == null) throw new ArgumentNullException(nameof(factory));
-            if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir)) return;
+            if (string.IsNullOrWhiteSpace(dir))
+                dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
+            if (!Directory.Exists(dir)) return;
 
             var dlls = Directory.GetFiles(dir, "*.dll");
             foreach (var f in dlls)

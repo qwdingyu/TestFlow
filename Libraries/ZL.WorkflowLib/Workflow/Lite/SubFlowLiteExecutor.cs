@@ -580,9 +580,8 @@ namespace ZL.WorkflowLib.Workflow
                 return;
 
             step.TimeoutMs = DefaultStepTimeoutMs;
-            PublishPlanLog(
-                $"[BuildPlan] 步骤 {contextName} 未设置 TimeoutMs，已使用默认值 {DefaultStepTimeoutMs}ms",
-                warn: false);
+            // TODO
+            //PublishPlanLog($"[BuildPlan] 步骤 {contextName} 未设置 TimeoutMs，已使用默认值 {DefaultStepTimeoutMs}ms", warn: false);
         }
 
         /// <summary>

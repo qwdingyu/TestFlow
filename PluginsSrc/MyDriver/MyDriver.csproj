@@ -9,4 +9,12 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Libraries\ZL.DeviceLib\ZL.DeviceLib.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="MySql.Data">
+      <HintPath>libs\MySql.Data.dll</HintPath>
+    </Reference>
+    <Reference Include="SqlSugar">
+      <HintPath>libs\SqlSugar.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 </Project>

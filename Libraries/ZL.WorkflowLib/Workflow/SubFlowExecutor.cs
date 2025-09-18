@@ -262,7 +262,8 @@ namespace ZL.WorkflowLib.Workflow
                 return;
 
             step.TimeoutMs = DefaultStepTimeoutMs;
-            UiEventBus.PublishLog(string.Format("[SubFlow] 步骤 {0} 未设置 TimeoutMs，使用默认值 {1}ms", contextName, DefaultStepTimeoutMs));
+            // TODO
+            //UiEventBus.PublishLog(string.Format("[SubFlow] 步骤 {0} 未设置 TimeoutMs，使用默认值 {1}ms", contextName, DefaultStepTimeoutMs));
         }
 
         private static string ResolveResourceId(StepConfig step, string contextName)

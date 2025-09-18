@@ -37,7 +37,7 @@ namespace TestFlowDemo.Tests
             host.RegisterWorkflow(workflow);
             host.Start();
 
-            var factory = new DeviceFactory(System.IO.Path.GetTempPath(), System.IO.Path.GetTempPath());
+            var factory = new DeviceFactory("sqlite", System.IO.Path.GetTempPath(), System.IO.Path.GetTempPath());
             var cts = new CancellationTokenSource();
 
             try

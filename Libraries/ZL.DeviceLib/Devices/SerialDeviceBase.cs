@@ -16,7 +16,7 @@ namespace ZL.DeviceLib.Devices
             _transport = new SerialTextTransport(cfg.ConnectionString);
         }
 
-        public DeviceExecResult Execute(StepConfig step, StepContext ctx)
+        public ExecutionResult Execute(StepConfig step, StepContext ctx)
         {
             var token = ctx.Cancellation;
             var outputs = new Dictionary<string, object>();
@@ -26,15 +26,15 @@ namespace ZL.DeviceLib.Devices
             }
             catch (OperationCanceledException)
             {
-                return new DeviceExecResult { Success = false, Message = "Step cancelled by timeout", Outputs = outputs };
+                return new ExecutionResult { Success = false, Message = "Step cancelled by timeout", Outputs = outputs };
             }
             catch (Exception ex)
             {
-                return new DeviceExecResult { Success = false, Message = $"{GetType().Name} Exception: {ex.Message}", Outputs = outputs };
+                return new ExecutionResult { Success = false, Message = $"{GetType().Name} Exception: {ex.Message}", Outputs = outputs };
             }
         }
 
-        protected abstract DeviceExecResult HandleCommand(StepConfig step, StepContext ctx, Dictionary<string, object> outputs, CancellationToken token);
+        protected abstract ExecutionResult HandleCommand(StepConfig step, StepContext ctx, Dictionary<string, object> outputs, CancellationToken token);
 
         public bool IsHealthy() => _transport != null && _transport.IsConnected;
         public void Dispose()

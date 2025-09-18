@@ -14,7 +14,7 @@ namespace ZL.DeviceLib.Devices.Actions
         private readonly DeviceConfig _cfg;
         public ShellActionDevice(DeviceConfig cfg) { _cfg = cfg; }
 
-        public DeviceExecResult Execute(StepConfig step, StepContext ctx)
+        public ExecutionResult Execute(StepConfig step, StepContext ctx)
         {
             var outputs = new Dictionary<string, object>();
             var token = ctx.Cancellation;
@@ -74,12 +74,12 @@ namespace ZL.DeviceLib.Devices.Actions
                 outputs["exit_code"] = proc.ExitCode;
                 if (captureStdout) outputs["stdout"] = sbOut.ToString();
                 if (captureStderr) outputs["stderr"] = sbErr.ToString();
-                return new DeviceExecResult { Success = proc.ExitCode == 0, Message = "exit " + proc.ExitCode, Outputs = outputs };
+                return new ExecutionResult { Success = proc.ExitCode == 0, Message = "exit " + proc.ExitCode, Outputs = outputs };
             }
             catch (OperationCanceledException)
-            { return new DeviceExecResult { Success = false, Message = "cancelled", Outputs = outputs }; }
+            { return new ExecutionResult { Success = false, Message = "cancelled", Outputs = outputs }; }
             catch (Exception ex)
-            { return new DeviceExecResult { Success = false, Message = "Shell Exception: " + ex.Message, Outputs = outputs }; }
+            { return new ExecutionResult { Success = false, Message = "Shell Exception: " + ex.Message, Outputs = outputs }; }
         }
 
         private static string GetStr(Dictionary<string, object> dict, string key, string defv)

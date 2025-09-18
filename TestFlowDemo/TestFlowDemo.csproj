@@ -79,4 +79,9 @@
       <ProjectReference Include="..\Libraries\ZL.DeviceLib\ZL.DeviceLib.csproj" />
       <ProjectReference Include="..\Libraries\ZL.WorkflowLib\ZL.WorkflowLib.csproj" />
     </ItemGroup>
+    <ItemGroup>
+      <Reference Include="SqlSugar">
+        <HintPath>..\Libraries\ZL.DeviceLib\libs\SqlSugar.dll</HintPath>
+      </Reference>
+    </ItemGroup>
 </Project>

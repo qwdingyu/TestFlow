@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using WorkflowCore.Interface;
 using ZL.DeviceLib;
@@ -58,27 +59,16 @@ namespace TestFlowDemo
         }
         void InitDbAndParams()
         {
-            string dbPath = "test_demo.db";
-            string reportDir = "Reports";
-            // 初始化数据库（注册内置 sqlite + 允许插件扩展）
             var registry = new InfrastructureRegistry();
-            registry.RegisterDatabase("sqlite", opts => new DatabaseService(
-                DbPathUtil.ResolveSqlitePath(opts?.ConnectionString, opts?.DefaultDbPath ?? dbPath, AppDomain.CurrentDomain.BaseDirectory)));
-            try { registry.LoadPlugins(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins")); } catch { }
 
             var dbCfg = ReadInfraDb();
-            var dbOptions = new DbOptions { ConnectionString = dbCfg.ConnectionString, DefaultDbPath = dbPath, Settings = dbCfg.Settings ?? new System.Collections.Generic.Dictionary<string, object>() };
-            var providerType = string.IsNullOrWhiteSpace(dbCfg.Provider) ? "sqlite" : dbCfg.Provider;
-            if (providerType.Equals("database", StringComparison.OrdinalIgnoreCase))
-            {
-                AddLog("[WARN] infrastructure.database.Type=\"database\" 含糊，已按 sqlite 处理。建议改为 Type=\"sqlite\" 或插件提供者名。");
-                providerType = "sqlite";
-            }
-            _db = registry.CreateDatabase(providerType, dbOptions);
+            var dbOptions = new DbOptions { Type = dbCfg.Provider, ConnectionString = dbCfg.ConnectionString, Settings = dbCfg.Settings };
+
+            registry.RegisterDatabase("sqlite", opts => new DbServices(dbOptions.Type, dbOptions.ConnectionString));
             DeviceServices.Db = _db;
 
             // 初始化设备工厂
-            _factory = new DeviceFactory(dbPath, reportDir);
+            _factory = new DeviceFactory(dbCfg.Provider, dbCfg.ConnectionString);
             DeviceServices.Factory = _factory;
 
             //// 加载外部插件（可选）：将自定义设备驱动 DLL 放置于 程序目录/Plugins 下即可自动注册
@@ -112,10 +102,8 @@ namespace TestFlowDemo
 
             UiEventBus.PublishLog("[Init] 全局服务初始化完成");
         }
-        // 统一改用 DbPathUtil，保留方法名避免调用方改动
-        private static string ResolveDbPath(string conn, string fallback)
-            => DbPathUtil.ResolveSqlitePath(conn, fallback, AppDomain.CurrentDomain.BaseDirectory);
-        private static (string Provider, string ConnectionString, System.Collections.Generic.Dictionary<string, object> Settings) ReadInfraDb()
+
+        private static (string Provider, string ConnectionString, Dictionary<string, object> Settings) ReadInfraDb()
         {
             try
             {
@@ -129,7 +117,7 @@ namespace TestFlowDemo
                     var type = db.Value<string>("Type");
                     var conn = db.Value<string>("ConnectionString");
                     var settings = db["Settings"] as Newtonsoft.Json.Linq.JObject;
-                    return (type, conn, settings != null ? settings.ToObject<System.Collections.Generic.Dictionary<string, object>>() : null);
+                    return (type, conn, settings != null ? settings.ToObject<Dictionary<string, object>>() : new Dictionary<string, object>());
                 }
             }
             catch { }
@@ -309,7 +297,7 @@ namespace TestFlowDemo
                     _host.TerminateWorkflow(_currentRunId).Wait();
                     AddLog($"测试已终止: RunId={_currentRunId}");
                     lblStatus.Text = "已停止";
-                    _runner.CancelTimeout(_currentRunId);   // 🔑 取消超时监控
+                    _runner.CancelTimeout(_currentRunId);   // 取消超时监控
                     _currentRunId = null;
                 }
             }
@@ -366,7 +354,7 @@ namespace TestFlowDemo
                     {
                         AddLog($"[Completed] SessionId={sessionId}, Model={model}（自然结束）");
                         lblStatus.Text = "已完成";
-                        _runner.CancelTimeout(_currentRunId);   // 🔑 取消超时监控
+                        _runner.CancelTimeout(_currentRunId);   // 取消超时监控
                         _currentRunId = null;
                         UpdateButtonStates();
                     }));

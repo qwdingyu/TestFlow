@@ -15,7 +15,7 @@ namespace ZL.DeviceLib.Devices.Actions
         private readonly DeviceConfig _cfg;
         public HttpActionDevice(DeviceConfig cfg) { _cfg = cfg; }
 
-        public DeviceExecResult Execute(StepConfig step, StepContext ctx)
+        public ExecutionResult Execute(StepConfig step, StepContext ctx)
         {
             var outputs = new Dictionary<string, object>();
             var token = ctx.Cancellation;
@@ -55,12 +55,12 @@ namespace ZL.DeviceLib.Devices.Actions
                 outputs["headers"] = resp.Headers.ToDictionary(h => h.Key, h => (object)string.Join(",", h.Value));
                 outputs["body"] = respText;
                 try { outputs["json"] = JsonConvert.DeserializeObject<object>(respText); } catch { }
-                return new DeviceExecResult { Success = resp.IsSuccessStatusCode, Message = "http " + (int)resp.StatusCode, Outputs = outputs };
+                return new ExecutionResult { Success = resp.IsSuccessStatusCode, Message = "http " + (int)resp.StatusCode, Outputs = outputs };
             }
             catch (OperationCanceledException)
-            { return new DeviceExecResult { Success = false, Message = "cancelled", Outputs = outputs }; }
+            { return new ExecutionResult { Success = false, Message = "cancelled", Outputs = outputs }; }
             catch (Exception ex)
-            { return new DeviceExecResult { Success = false, Message = "HTTP Exception: " + ex.Message, Outputs = outputs }; }
+            { return new ExecutionResult { Success = false, Message = "HTTP Exception: " + ex.Message, Outputs = outputs }; }
         }
 
         private static string GetStr(Dictionary<string, object> dict, string key, string defv)
