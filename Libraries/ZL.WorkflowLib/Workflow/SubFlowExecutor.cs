@@ -236,7 +236,11 @@ namespace ZL.WorkflowLib.Workflow
 
         private static StepContext CreateSharedContext(FlowModel data)
         {
-            var baseModel = data != null ? data.Model : WorkflowServices.FlowCfg != null ? WorkflowServices.FlowCfg.Model : string.Empty;
+            var baseModel = data != null && !string.IsNullOrWhiteSpace(data.Model)
+                ? data.Model
+                : data != null && data.ActiveConfig != null && !string.IsNullOrWhiteSpace(data.ActiveConfig.Model)
+                    ? data.ActiveConfig.Model
+                    : string.Empty;
             var token = data != null ? data.Cancellation : CancellationToken.None;
             if (DeviceServices.Context != null)
                 return DeviceServices.Context.CloneWithCancellation(token);

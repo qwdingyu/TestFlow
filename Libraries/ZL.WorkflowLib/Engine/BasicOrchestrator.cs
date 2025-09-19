@@ -334,8 +334,8 @@ namespace ZL.WorkflowLib.Engine
         /// </summary>
         private Dictionary<string, object> RunOnDevice(OrchTask task, StepContext baseCtx, CancellationToken planToken)
         {
-            if (WorkflowServices.FlowCfg == null)
-                throw new InvalidOperationException("WorkflowServices.FlowCfg 尚未初始化");
+            //if (WorkflowServices.FlowCfg == null)
+            //    throw new InvalidOperationException("WorkflowServices.FlowCfg 尚未初始化");
             if (DeviceServices.Factory == null)
                 throw new InvalidOperationException("DeviceServices.Factory 尚未初始化");
             if (string.IsNullOrWhiteSpace(task.Target))
@@ -350,10 +350,9 @@ namespace ZL.WorkflowLib.Engine
                 if (task.TimeoutMs > 0)
                     linked.CancelAfter(task.TimeoutMs);
 
-                var model = baseCtx != null ? baseCtx.Model : (WorkflowServices.FlowCfg.Model ?? string.Empty);
-                var stepCtx = baseCtx != null
-                    ? baseCtx.CloneWithCancellation(linked.Token)
-                    : new StepContext(model, linked.Token);
+                //var model = baseCtx != null ? baseCtx.Model : (WorkflowServices.FlowCfg.Model ?? string.Empty);
+                var model = baseCtx != null && !string.IsNullOrWhiteSpace(baseCtx.Model) ? baseCtx.Model : string.Empty;
+                var stepCtx = baseCtx != null ? baseCtx.CloneWithCancellation(linked.Token) : new StepContext(model, linked.Token);
 
                 var stepConfig = new StepConfig
                 {
@@ -361,9 +360,7 @@ namespace ZL.WorkflowLib.Engine
                     Description = string.Empty,
                     Target = task.Target,
                     Command = task.Command,
-                    Parameters = task.Parameters != null
-                        ? new Dictionary<string, object>(task.Parameters)
-                        : new Dictionary<string, object>(),
+                    Parameters = task.Parameters != null ? new Dictionary<string, object>(task.Parameters) : new Dictionary<string, object>(),
                     ExpectedResults = new Dictionary<string, object>(),
                     TimeoutMs = task.TimeoutMs
                 };

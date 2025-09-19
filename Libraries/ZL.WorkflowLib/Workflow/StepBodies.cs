@@ -429,7 +429,7 @@ namespace ZL.WorkflowLib.Workflow
                     if (step.TimeoutMs > 0)
                         linked.CancelAfter(step.TimeoutMs);
 
-                    var model = sharedCtx != null ? sharedCtx.Model : WorkflowServices.FlowCfg != null ? WorkflowServices.FlowCfg.Model : string.Empty;
+                    var model = sharedCtx != null && !string.IsNullOrWhiteSpace(sharedCtx.Model) ? sharedCtx.Model : string.Empty;
                     var stepCtx = sharedCtx != null
                         ? sharedCtx.CloneWithCancellation(linked.Token)
                         : new StepContext(model, linked.Token);
@@ -822,7 +822,9 @@ namespace ZL.WorkflowLib.Workflow
         {
             var model = data != null && !string.IsNullOrWhiteSpace(data.Model)
                 ? data.Model
-                : WorkflowServices.FlowCfg != null ? WorkflowServices.FlowCfg.Model : string.Empty;
+                : data != null && data.ActiveConfig != null && !string.IsNullOrWhiteSpace(data.ActiveConfig.Model)
+                    ? data.ActiveConfig.Model
+                    : string.Empty;
             var token = data != null ? data.Cancellation : CancellationToken.None;
 
             if (DeviceServices.Context != null)

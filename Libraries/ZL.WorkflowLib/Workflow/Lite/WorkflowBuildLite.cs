@@ -19,12 +19,37 @@ namespace ZL.WorkflowLib.Workflow.Lite
         public override ExecutionResult Run(IStepExecutionContext context)
         {
             var data = (FlowModel)context.Workflow.Data;
-            data.WorkflowCompleted = false; data.LastSuccess = true; data.Model = WorkflowServices.FlowCfg.Model;
-            foreach (var s in WorkflowServices.FlowCfg.TestSteps)
+            var config = data != null ? data.GetActiveConfig() : WorkflowServices.FlowCfg;
+            if (config == null)
             {
-                if (s.DependsOn == null || s.DependsOn.Count == 0) { data.Current = s.Name; break; }
+                data.WorkflowCompleted = true;
+                data.LastSuccess = false;
+                UiEventBus.PublishLog("[Init] Flow config missing, workflow will stop");
+                return ExecutionResult.Next();
             }
-            if (string.IsNullOrEmpty(data.Current)) data.WorkflowCompleted = true;
+
+            if (data.ActiveConfig == null)
+                data.ActiveConfig = config;
+
+            data.WorkflowCompleted = false;
+            data.LastSuccess = true;
+            if (!string.IsNullOrWhiteSpace(config.Model))
+                data.Model = config.Model;
+
+            if (config.TestSteps != null)
+            {
+                foreach (var s in config.TestSteps)
+                {
+                    if (s.DependsOn == null || s.DependsOn.Count == 0)
+                    {
+                        data.Current = s.Name;
+                        break;
+                    }
+                }
+            }
+            if (string.IsNullOrEmpty(data.Current))
+                data.WorkflowCompleted = true;
+
             data.SessionId = DeviceServices.Db.StartTestSession(data.Model, data.Sn);
             UiEventBus.PublishLog($"[Init] 产品={data.Model}, SN={data.Sn}, SessionId={data.SessionId}, 起始步骤={data.Current}");
             return ExecutionResult.Next();
@@ -44,7 +69,18 @@ namespace ZL.WorkflowLib.Workflow.Lite
             if (data.WorkflowCompleted || string.IsNullOrEmpty(data.Current))
                 return ExecutionResult.Next();
 
-            var stepCfg = WorkflowServices.FlowCfg.TestSteps.Find(x => x.Name == data.Current);
+            var config = data != null ? data.GetActiveConfig() : WorkflowServices.FlowCfg;
+            if (config == null || config.TestSteps == null)
+            {
+                data.LastSuccess = false;
+                UiEventBus.PublishLog("[DeviceExec] Flow config missing");
+                return ExecutionResult.Next();
+            }
+
+            if (data.ActiveConfig == null)
+                data.ActiveConfig = config;
+
+            var stepCfg = config.TestSteps.Find(x => x.Name == data.Current);
             if (stepCfg == null)
             {
                 data.LastSuccess = false;
@@ -266,7 +302,7 @@ namespace ZL.WorkflowLib.Workflow.Lite
                         linked.CancelAfter(step.TimeoutMs);
 
                     // 沿用全局上下文信息（模型、Bag 等），仅替换取消令牌。
-                    var model = sharedCtx != null ? sharedCtx.Model : WorkflowServices.FlowCfg != null ? WorkflowServices.FlowCfg.Model : string.Empty;
+                    var model = sharedCtx != null ? sharedCtx.Model : string.Empty;
                     var stepCtx = sharedCtx != null
                         ? sharedCtx.CloneWithCancellation(linked.Token)
                         : new StepContext(model, linked.Token);
@@ -590,7 +626,18 @@ namespace ZL.WorkflowLib.Workflow.Lite
             var data = (FlowModel)context.Workflow.Data;
             if (data.WorkflowCompleted || string.IsNullOrEmpty(data.Current))
                 return ExecutionResult.Next();
-            var stepCfg = WorkflowServices.FlowCfg.TestSteps.Find(x => x.Name == data.Current);
+            var config = data != null ? data.GetActiveConfig() : WorkflowServices.FlowCfg;
+            if (config == null || config.TestSteps == null)
+            {
+                data.LastSuccess = false;
+                UiEventBus.PublishLog("[UnifiedExec] Flow config missing");
+                return ExecutionResult.Next();
+            }
+
+            if (data.ActiveConfig == null)
+                data.ActiveConfig = config;
+
+            var stepCfg = config.TestSteps.Find(x => x.Name == data.Current);
             if (stepCfg == null)
             {
                 data.LastSuccess = false;
@@ -647,7 +694,18 @@ namespace ZL.WorkflowLib.Workflow.Lite
             var data = (FlowModel)context.Workflow.Data;
             if (data.WorkflowCompleted || string.IsNullOrEmpty(data.Current))
                 return ExecutionResult.Next();
-            var stepCfg = WorkflowServices.FlowCfg.TestSteps.Find(x => x.Name == data.Current);
+            var config = data != null ? data.GetActiveConfig() : WorkflowServices.FlowCfg;
+            if (config == null || config.TestSteps == null)
+            {
+                data.WorkflowCompleted = true;
+                UiEventBus.PublishLog("[Route] Flow config missing");
+                return ExecutionResult.Next();
+            }
+
+            if (data.ActiveConfig == null)
+                data.ActiveConfig = config;
+
+            var stepCfg = config.TestSteps.Find(x => x.Name == data.Current);
             if (stepCfg == null)
             {
                 data.WorkflowCompleted = true; UiEventBus.PublishLog("[Route] 找不到当前步骤配置，强制结束");

@@ -46,6 +46,36 @@ namespace ZL.WorkflowLib.Workflow
         /// 动态生成的子流程 Id
         /// </summary>
         public string WorkflowId { get; set; }
+        /// <summary>
+        /// 当前流程运行时使用的完整配置对象引用。
+        /// <para>在并行启动不同型号流程时，每个实例都持有独立的配置，避免互相污染。</para>
+        /// <para>保持可空以兼容旧版序列化数据，框架在读取不到该字段时仍然可以正常运行。</para>
+        /// </summary>
+        public FlowConfig ActiveConfig { get; set; }
+    }
+
+    /// <summary>
+    /// <para>FlowModel 的便捷扩展，统一获取当前流程配置。</para>
+    /// <para>优先使用运行时注入的 <see cref="FlowModel.ActiveConfig"/>，仅在缺少上下文时回退到全局配置。</para>
+    /// </summary>
+    internal static class FlowModelExtensions
+    {
+        /// <summary>
+        /// 获取当前流程上下文对应的配置对象。
+        /// </summary>
+        /// <param name="data">工作流运行时共享数据。</param>
+        /// <returns>流程配置；若上下文为空则退回到全局配置。</returns>
+        public static FlowConfig GetActiveConfig(this FlowModel data)
+        {
+            if (data != null && data.ActiveConfig != null)
+                return data.ActiveConfig;
+
+            var global = WorkflowServices.FlowCfg;
+            if (data != null && global != null && data.ActiveConfig == null)
+                data.ActiveConfig = global;
+
+            return global;
+        }
     }
 
     /// <summary>

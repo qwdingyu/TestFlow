@@ -300,9 +300,15 @@ namespace ZL.WorkflowLib.Workflow
                     return;
                 }
 
-                var baseCtx = DeviceServices.Context ?? new StepContext(data?.Model ?? WorkflowServices.FlowCfg?.Model ?? string.Empty,
-                                                                         data != null ? data.Cancellation : CancellationToken.None);
+                // 优先使用流程上下文中的型号信息，缺失时再尝试从配置引用获取，确保不同流程之间互不干扰。
+                var activeModel = data != null && !string.IsNullOrWhiteSpace(data.Model)
+                    ? data.Model
+                    : data != null && data.ActiveConfig != null && !string.IsNullOrWhiteSpace(data.ActiveConfig.Model)
+                        ? data.ActiveConfig.Model
+                        : string.Empty;
+                var cancellation = data != null ? data.Cancellation : CancellationToken.None;
 
+                var baseCtx = DeviceServices.Context ?? new StepContext(activeModel, cancellation);
                 var orchestrationResult = _orchestrator.Execute(plan, baseCtx);
 
                 foreach (var task in plan.Tasks)

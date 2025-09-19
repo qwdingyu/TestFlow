@@ -84,8 +84,11 @@ namespace ZL.WorkflowLib
             DeviceServices.Context = ctx;
             // 1) 加载配置
             var cfg = ConfigManager.Instance.GetFlowConfig(model);
+            // 记录到 FlowModel.ActiveConfig，确保每个流程实例持有独立配置。
+            var flowData = new FlowModel { Model = model, Sn = barcode, Cancellation = cts.Token , ActiveConfig = cfg };
+            // 为兼容旧版代码路径，仍然同步一次全局引用，仅用于调试查看。
             WorkflowServices.FlowCfg = cfg;
-            var flowData = new FlowModel { Model = model, Sn = barcode, Cancellation = cts.Token };
+
             string runId = "";
             if (_useLite)
             {
@@ -122,13 +125,53 @@ namespace ZL.WorkflowLib
                     }
                 }
                 catch (TaskCanceledException) { }
+                finally
+                {
+                    CleanupTimeoutRegistration(runId, cts, dispose: true);
+                }
             }, cts.Token);
             return runId;
         }
         public void CancelTimeout(string runId)
         {
             if (string.IsNullOrEmpty(runId)) return;
-            if (_timeoutMap.TryRemove(runId, out var cts)) { cts.Cancel(); cts.Dispose(); UiEventBus.PublishLog($"[Guard] RunId={runId} 超时守护已解除"); }
+            if (_timeoutMap.TryRemove(runId, out var cts))
+            {
+                try
+                {
+                    if (!cts.IsCancellationRequested)
+                        cts.Cancel();
+                }
+                finally
+                {
+                    cts.Dispose();
+                }
+                UiEventBus.PublishLog($"[Guard] RunId={runId} 超时守护已解除");
+            }
+        }
+
+        /// <summary>
+        /// 统一清理超时监控注册，避免 ConcurrentDictionary 长期持有工作流配置引用。
+        /// </summary>
+        /// <param name="runId">工作流运行 Id。</param>
+        /// <param name="cts">对应的取消源。</param>
+        /// <param name="dispose">是否在移除后释放取消源。</param>
+        private void CleanupTimeoutRegistration(string runId, CancellationTokenSource cts, bool dispose)
+        {
+            if (string.IsNullOrEmpty(runId) || cts == null)
+                return;
+
+            if (_timeoutMap.TryGetValue(runId, out var existing) && ReferenceEquals(existing, cts))
+            {
+                if (_timeoutMap.TryRemove(runId, out existing) && dispose)
+                {
+                    try { existing.Dispose(); } catch { }
+                }
+            }
+            else if (dispose)
+            {
+                try { cts.Dispose(); } catch { }
+            }
         }
     }
 }
