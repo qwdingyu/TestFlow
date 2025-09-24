@@ -1,15 +1,5 @@
 {
   "Infrastructure": {
-    "database": {
-      "Type": "sqlite",
-      "ConnectionString": "sqlite://./test_cli.db",
-      "Settings": {}
-    },
-    "report_generator": {
-      "Type": "report_generator",
-      "ConnectionString": "",
-      "Settings": { "template": "default" }
-    },
     "system": {
       "Type": "system",
       "ConnectionString": "",

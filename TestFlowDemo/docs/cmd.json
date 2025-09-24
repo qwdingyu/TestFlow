@@ -1,0 +1,39 @@
+{
+	"Devices": {
+		"scanner_1": {
+			"Type": "serial",
+			"ConnectionString": "COM3:9600,N,8,1",
+			"Name": "BarcodeScanner"
+		},
+		"power_meter_1": {
+			"Type": "usb",
+			"Params": {
+				"VID": 1155,
+				"PID": 22336,
+				"InEp": 129,
+				"OutEp": 1
+			},
+			"Name": "PowerMeter"
+		},
+		"plc_tcp_1": {
+			"Type": "network",
+			"Protocol": "tcp",
+			"Params": {
+				"Host": "192.168.1.100",
+				"Port": 502
+			},
+			"Name": "PLC_TCP"
+		},
+		"sensor_udp_1": {
+			"Type": "network",
+			"Protocol": "udp",
+			"Params": {
+				"LocalHost": "0.0.0.0",
+				"LocalPort": 1500,
+				"RemoteHost": "192.168.1.200",
+				"RemotePort": 1501
+			},
+			"Name": "Sensor_UDP"
+		}
+	}
+}

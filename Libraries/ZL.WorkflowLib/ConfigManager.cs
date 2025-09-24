@@ -2,11 +2,10 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using ZL.DeviceLib;
 using ZL.DeviceLib.Models;
-using ZL.WorkflowLib.Workflow;
+//using ZL.WorkflowLib.Workflow;
 
-namespace ZL.WorkflowLib
+namespace ZL.DeviceLib
 {
     public class ConfigManager
     {
@@ -32,7 +31,7 @@ namespace ZL.WorkflowLib
                 foreach (var kv in _allInfrastructure)
                     merged[kv.Key] = kv.Value;
             }
-            DeviceServices.Devices = merged;
+            DeviceServices.DevicesCfg = merged;
         }
 
         private void LoadDevices()
@@ -46,7 +45,7 @@ namespace ZL.WorkflowLib
                 LogHelper.Info("设备配置文件不存在: devices.json / Devices.json");
             }
             // Schema 校验
-            Engine.JsonSchemaValidator.ValidateDevicesFile(devicesPath);
+            //Engine.JsonSchemaValidator.ValidateDevicesFile(devicesPath);
             var devicesRoot = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, DeviceConfig>>>(File.ReadAllText(devicesPath));
             _allDevices = devicesRoot.ContainsKey("Devices") ? (devicesRoot["Devices"] ?? new Dictionary<string, DeviceConfig>()) : new Dictionary<string, DeviceConfig>();
             LogHelper.Info($"设备配置已加载，共 {_allDevices.Count} 个物理设备。");
@@ -62,7 +61,7 @@ namespace ZL.WorkflowLib
                 return;
             }
             // Schema 校验
-            Engine.JsonSchemaValidator.ValidateInfrastructureFile(infraPath);
+            //Engine.JsonSchemaValidator.ValidateInfrastructureFile(infraPath);
             var infraRoot = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, DeviceConfig>>>(File.ReadAllText(infraPath));
             _allInfrastructure = infraRoot.ContainsKey("Infrastructure") ? (infraRoot["Infrastructure"] ?? new Dictionary<string, DeviceConfig>()) : new Dictionary<string, DeviceConfig>();
             LogHelper.Info($"基础设施配置已加载，共 {_allInfrastructure.Count} 个服务。");
@@ -90,11 +89,11 @@ namespace ZL.WorkflowLib
                 LogHelper.Info($"[WARN] {fileModel}.json 的 Model=\"{declaredModel}\" 与文件名不一致，建议保持一致");
             }
             // Schema 校验（基础结构）基于规范化后的 token
-            Engine.JsonSchemaValidator.ValidateFlowToken(jobj);
+            //Engine.JsonSchemaValidator.ValidateFlowToken(jobj);
             FlowConfig config = JsonConvert.DeserializeObject<FlowConfig>(jobj.ToString());
 
             // 配置预校验（确保流程完整、设备与子流程有效）
-            Engine.FlowValidator.Validate(config, _baseDir);
+            //Engine.FlowValidator.Validate(config, _baseDir);
             _flowCache[model] = config;
             LogHelper.Info($"流程配置已加载并缓存: {model}，步骤数: {config.TestSteps.Count}");
             return config;

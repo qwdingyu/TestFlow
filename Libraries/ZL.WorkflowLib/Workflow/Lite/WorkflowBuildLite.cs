@@ -308,7 +308,7 @@ namespace ZL.WorkflowLib.Workflow.Lite
                         : new StepContext(model, linked.Token);
 
                     DeviceConfig devConf;
-                    if (!DeviceServices.Devices.TryGetValue(step.Target, out devConf))
+                    if (!DeviceServices.DevicesCfg.TryGetValue(step.Target, out devConf))
                         throw new Exception("Device not found: " + step.Target);
 
                     var execResult = DeviceServices.Factory.UseDevice(step.Target, devConf, dev => dev.Execute(step, stepCtx));
@@ -364,7 +364,7 @@ namespace ZL.WorkflowLib.Workflow.Lite
                             var runCtx = new StepContext(ctx.Model, linked.Token);
 
                             DeviceConfig devConf;
-                            if (!DeviceServices.Devices.TryGetValue(deviceName, out devConf))
+                            if (!DeviceServices.DevicesCfg.TryGetValue(deviceName, out devConf))
                                 throw new Exception("Device not found: " + deviceName);
 
                             var sc = new StepConfig

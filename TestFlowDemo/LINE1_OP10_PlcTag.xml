@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<DataTable>
+	<TagItem Id="1" Description="OP10-质量呼叫" Address="DB210.2.5" DataTypeCode="bool" Length="1" Enable="True" TagType="M" InfoType="" DataSource="PLC" StationNo="OP10" Step="0" />
+	<TagItem Id="2" Description="OP10-设备呼叫" Address="DB210.2.7" DataTypeCode="bool" Length="1" Enable="True" TagType="M" InfoType="" DataSource="PLC" StationNo="OP10" Step="0" />
+	<TagItem Id="3" Description="OP10-电批请求发送" Address="DB210.3.0" DataTypeCode="bool" Length="1" Enable="True" TagType="M" InfoType="" DataSource="PLC" StationNo="OP10" Step="0" />
+	<TagItem Id="4" Description="OP10-电批1合格判断" Address="DB210.3.5" DataTypeCode="bool" Length="1" Enable="True" TagType="" InfoType="" DataSource="PLC" StationNo="OP10" Step="0" />
+	<TagItem Id="5" Description="OP10-电批2合格判断" Address="DB210.3.6" DataTypeCode="bool" Length="1" Enable="True" TagType="" InfoType="" DataSource="PLC" StationNo="OP10" Step="0" />
+	<TagItem Id="6" Description="OP10-电批3合格判断" Address="DB210.3.7" DataTypeCode="bool" Length="1" Enable="True" TagType="" InfoType="" DataSource="PLC" StationNo="OP10" Step="0" />
+
+	<TagItem Id="7" Description="OP60-质量呼叫" Address="DB260.2.5" DataTypeCode="bool" Length="1" Enable="True" TagType="M" InfoType="" DataSource="PLC" StationNo="OP60" Step="0" />
+	<TagItem Id="8" Description="OP60-设备呼叫" Address="DB260.2.7" DataTypeCode="bool" Length="1" Enable="True" TagType="M" InfoType="" DataSource="PLC" StationNo="OP60" Step="0" />
+
+	<TagItem Id="9" Description="OP100-质量呼叫" Address="DB230.2.5" DataTypeCode="bool" Length="1" Enable="True" TagType="M" InfoType="" DataSource="PLC" StationNo="OP100" Step="0" />
+	<TagItem Id="10" Description="OP100-设备呼叫" Address="DB230.2.7" DataTypeCode="bool" Length="1" Enable="True" TagType="M" InfoType="" DataSource="PLC" StationNo="OP100" Step="0" />
+	<TagItem Id="11" Description="OP100-电批1请求发送" Address="DB230.3.0" DataTypeCode="bool" Length="1" Enable="True" TagType="M" InfoType="" DataSource="PLC" StationNo="OP100" Step="0" />
+	<TagItem Id="12" Description="OP100-电批1合格判断" Address="DB230.3.5" DataTypeCode="bool" Length="1" Enable="True" TagType="" InfoType="" DataSource="PLC" StationNo="OP100" Step="0" />
+	<TagItem Id="13" Description="OP100-电批2合格判断" Address="DB230.3.6" DataTypeCode="bool" Length="1" Enable="True" TagType="" InfoType="" DataSource="PLC" StationNo="OP100" Step="0" />
+	<TagItem Id="20" Description="OP100-电批2请求发送" Address="DB230.3.1" DataTypeCode="bool" Length="1" Enable="True" TagType="M" InfoType="" DataSource="PLC" StationNo="OP100" Step="0" />
+	
+	<TagItem Id="14" Description="OP110-质量呼叫" Address="DB240.2.5" DataTypeCode="bool" Length="1" Enable="True" TagType="M" InfoType="" DataSource="PLC" StationNo="OP110" Step="0" />
+	<TagItem Id="15" Description="OP110-设备呼叫" Address="DB240.2.7" DataTypeCode="bool" Length="1" Enable="True" TagType="M" InfoType="" DataSource="PLC" StationNo="OP110" Step="0" />
+	<TagItem Id="16" Description="OP110-PLC请求上载质量数据" Address="DB240.3.0" DataTypeCode="bool" Length="1" Enable="True" TagType="M" InfoType="" DataSource="PLC" StationNo="OP110" Step="0" />
+
+</DataTable>

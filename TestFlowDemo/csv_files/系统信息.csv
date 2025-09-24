@@ -1,0 +1,84 @@
+DB36.DBB2938[32],eg DB36.DBB2938[32](测试结果写入线体PLC)
+DB36.DBB2970[32],eg DB36.DBB2970[32](获取线体PLC条码内容)
+1,eg 0.8(低档电阻补偿值)
+,eg (电阻补偿值)
+,eg 0.3(电阻补偿值)
+0x412,eg 0x412
+0x280,eg 0x280
+0x4FE,eg 0x4FE
+2,eg 6;N(地址;不启用)
+3,eg 7;N(地址;不启用)
+N,eg N(不启用)
+,eg YES
+13.5,eg 13.5(测试电源电压)
+LIN,eg LIN(按摩控制方式)
+Mode 3,eg 单排(按摩模式)
+高档,eg 中档(按摩力度)
+10,eg 10(合格信号连续采集个数)
+20,eg 20(不合格信号连续采集个数)
+80,eg 35Kg(SBR加载压力值)
+2,eg 
+2,eg 
+1,eg 1 前排；2 二排
+,eg 默认采集卡，PLC
+CAN1,eg CAN1(CAN1与CAN2通道选择)
+LIN1,eg  LIN1(LIN1与LIN2通道选择)
+,eg 默认启用，N(不启用)
+PCI-1713;BID#0/ai0:8,eg PCI-1713;BID#0/ai0:7
+0 ~ 10 V,eg 0 ~ 10 V
+PCI-1713;BID#0/port0:3,eg PCI-1730;BID#0/port0:3
+PCI-1713;BID#0/port0:3,eg PCI-1730;BID#0/port0:3
+电阻仪,eg 默认电阻仪，设置485，485模块采集
+192.168.0.200,eg 192.168.0.100
+DB1000.DBW0[21],eg DB1000.DBW0[25]
+DB1001.DBB28[6],eg DB1001.DBW0[55]电检站[42]Control
+0x0A,eg 0x0A
+0x0C,eg 0x0C
+0x0A,eg 0x0A
+0x04,eg 0x04
+0x37,eg 0x37
+0x38,eg 0x38
+COM10;4800;N,eg COM3;波特率;N(N为该串口不启用)
+COM6;9600;N,eg COM4;9600;N(N为该串口不启用)
+COM2;9600,eg COM1;9600;N(N为该串口不启用)
+COM3;9600,eg COM4;波特率;N(N为该串口不启用)
+COM1;2400,eg COM5;9600;N(N为该串口不启用)
+3.4,
+20,
+COM4;9600,
+1,eg N(N为不启用)
+3;4,eg N(N为不启用)地锁电阻
+,
+,
+30,单位 A
+同门电源,eg 默认I6500;同门电源;常电
+YES,
+YES,eg：YES
+0.6,
+内电检,
+DB1020.DBB0[12],
+0.5,单位 s
+0.5,单位 s
+MEAN,eg：RMS;MEAN;MAX
+YES,eg：YES 屏蔽
+192.168.0.2,eg：192.168.0.2
+http://192.168.10.10:94/api/mesdetect/DataUpLoad,
+0123456789,eg：
+1000,
+1,
+0,
+551A,
+二排SBR,
+,eg：YES 屏蔽
+YES,eg：YES 屏蔽
+电检站,eg：默认电检站；ControlBox
+,eg 实时值，MEAN(平均值)RMS(均方根)
+,
+,
+DB1001.DBW0[14],
+0x750;0x7B5;0x7D2;0x753;0x7A7,eg：0x780主驾0x7CA副驾0x7CC二排0x78F小ECU
+0x758;0x7BD;0x7DA;0x75B;0x7B7,eg：0x790主驾0x7CB副驾0x7CD二排0x79F小ECU
+0x4C1,eg：0x4D1
+,
+,
+,

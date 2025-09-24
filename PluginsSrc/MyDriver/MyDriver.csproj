@@ -1,20 +1,41 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net48;net7.0</TargetFrameworks>
-    <LangVersion>7.0</LangVersion>
+    <LangVersion>11.0</LangVersion>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <AssemblyName>MyDriver</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="Can\CanAdapterDevice.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\Libraries\ZL.DeviceLib\ZL.DeviceLib.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="HslCommunication">
+      <HintPath>libs\HslCommunication.dll</HintPath>
+    </Reference>
     <Reference Include="MySql.Data">
       <HintPath>libs\MySql.Data.dll</HintPath>
+    </Reference>
+    <Reference Include="NLog">
+      <HintPath>libs\NLog.dll</HintPath>
     </Reference>
     <Reference Include="SqlSugar">
       <HintPath>libs\SqlSugar.dll</HintPath>
     </Reference>
+    <Reference Include="ZL.PFLite">
+      <HintPath>libs\ZL.PFLite.dll</HintPath>
+    </Reference>
+    <Reference Include="ZL.PlcBase">
+      <HintPath>libs\ZL.PlcBase.dll</HintPath>
+    </Reference>
+    <Reference Include="ZL.Tag">
+      <HintPath>libs\ZL.Tag.dll</HintPath>
+    </Reference>
   </ItemGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy $(TargetDir)$(TargetFileName) C:\1-Code\0-电检\TestFlow\TestFlowDemo\bin\Debug\net48\Plugins /y" />
+  </Target>
 </Project>

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ZL.DeviceLib;
+using ZL.DeviceLib.Devices;
 using ZL.DeviceLib.Engine;
 using ZL.DeviceLib.Models;
 using ZL.WorkflowLib.Workflow;
@@ -329,20 +330,62 @@ namespace ZL.WorkflowLib.Engine
             return runCore();
         }
 
+        ///// <summary>
+        ///// <para>真正发起设备调用的核心逻辑。</para>
+        ///// </summary>
+        //private Dictionary<string, object> RunOnDevice(OrchTask task, StepContext baseCtx, CancellationToken planToken)
+        //{
+        //    //if (WorkflowServices.FlowCfg == null)
+        //    //    throw new InvalidOperationException("WorkflowServices.FlowCfg 尚未初始化");
+        //    if (DeviceServices.Factory == null)
+        //        throw new InvalidOperationException("DeviceServices.Factory 尚未初始化");
+        //    if (string.IsNullOrWhiteSpace(task.Target))
+        //        throw new InvalidOperationException($"任务 {task.Id} 未指定设备");
+
+        //    DeviceConfig deviceConfig;
+        //    if (!DeviceServices.Devices.TryGetValue(task.Target, out deviceConfig))
+        //        throw new InvalidOperationException("Device not found: " + task.Target);
+
+        //    using (var linked = CancellationTokenSource.CreateLinkedTokenSource(planToken))
+        //    {
+        //        if (task.TimeoutMs > 0)
+        //            linked.CancelAfter(task.TimeoutMs);
+
+        //        //var model = baseCtx != null ? baseCtx.Model : (WorkflowServices.FlowCfg.Model ?? string.Empty);
+        //        var model = baseCtx != null && !string.IsNullOrWhiteSpace(baseCtx.Model) ? baseCtx.Model : string.Empty;
+        //        var stepCtx = baseCtx != null ? baseCtx.CloneWithCancellation(linked.Token) : new StepContext(model, linked.Token);
+
+        //        var stepConfig = new StepConfig
+        //        {
+        //            Name = task.Id,
+        //            Description = string.Empty,
+        //            Target = task.Target,
+        //            Command = task.Command,
+        //            Parameters = task.Parameters != null ? new Dictionary<string, object>(task.Parameters) : new Dictionary<string, object>(),
+        //            ExpectedResults = new Dictionary<string, object>(),
+        //            TimeoutMs = task.TimeoutMs
+        //        };
+
+        //        return DeviceServices.Factory.UseDevice(task.Target, deviceConfig, dev =>
+        //        {
+        //            var execResult = dev.Execute(stepConfig, stepCtx);
+        //            if (!execResult.Success)
+        //                throw new Exception(execResult.Message ?? "设备执行返回失败");
+        //            return execResult.Outputs ?? new Dictionary<string, object>();
+        //        });
+        //    }
+        //}
         /// <summary>
-        /// <para>真正发起设备调用的核心逻辑。</para>
+        /// 真正发起设备调用的核心逻辑（通过 DeviceStepRouter）。
         /// </summary>
         private Dictionary<string, object> RunOnDevice(OrchTask task, StepContext baseCtx, CancellationToken planToken)
         {
-            //if (WorkflowServices.FlowCfg == null)
-            //    throw new InvalidOperationException("WorkflowServices.FlowCfg 尚未初始化");
             if (DeviceServices.Factory == null)
                 throw new InvalidOperationException("DeviceServices.Factory 尚未初始化");
             if (string.IsNullOrWhiteSpace(task.Target))
                 throw new InvalidOperationException($"任务 {task.Id} 未指定设备");
 
-            DeviceConfig deviceConfig;
-            if (!DeviceServices.Devices.TryGetValue(task.Target, out deviceConfig))
+            if (!DeviceServices.DevicesCfg.TryGetValue(task.Target, out var deviceConfig))
                 throw new InvalidOperationException("Device not found: " + task.Target);
 
             using (var linked = CancellationTokenSource.CreateLinkedTokenSource(planToken))
@@ -350,7 +393,6 @@ namespace ZL.WorkflowLib.Engine
                 if (task.TimeoutMs > 0)
                     linked.CancelAfter(task.TimeoutMs);
 
-                //var model = baseCtx != null ? baseCtx.Model : (WorkflowServices.FlowCfg.Model ?? string.Empty);
                 var model = baseCtx != null && !string.IsNullOrWhiteSpace(baseCtx.Model) ? baseCtx.Model : string.Empty;
                 var stepCtx = baseCtx != null ? baseCtx.CloneWithCancellation(linked.Token) : new StepContext(model, linked.Token);
 
@@ -365,13 +407,13 @@ namespace ZL.WorkflowLib.Engine
                     TimeoutMs = task.TimeoutMs
                 };
 
-                return DeviceServices.Factory.UseDevice(task.Target, deviceConfig, dev =>
-                {
-                    var execResult = dev.Execute(stepConfig, stepCtx);
-                    if (!execResult.Success)
-                        throw new Exception(execResult.Message ?? "设备执行返回失败");
-                    return execResult.Outputs ?? new Dictionary<string, object>();
-                });
+                // 关键改动：统一通过 DeviceStepRouter
+                var execResult = DeviceStepRouter.Execute(task.Target, deviceConfig, stepConfig, stepCtx);
+
+                if (!execResult.Success)
+                    throw new Exception(execResult.Message ?? "设备执行返回失败");
+
+                return execResult.Outputs ?? new Dictionary<string, object>();
             }
         }
 

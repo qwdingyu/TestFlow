@@ -15,7 +15,7 @@ namespace ZL.WorkflowLib.Engine
             if (cfg == null) throw new ArgumentNullException(nameof(cfg));
             if (cfg.TestSteps == null || cfg.TestSteps.Count == 0)
                 throw new Exception($"型号 {cfg.Model} 流程为空");
-            if (DeviceServices.Devices == null)
+            if (DeviceServices.DevicesCfg == null)
                 throw new Exception("设备清单未注入（Devices 为空）");
 
             // 1) 步骤名唯一、建立索引
@@ -168,7 +168,7 @@ namespace ZL.WorkflowLib.Engine
             var key = string.IsNullOrWhiteSpace(step.Target) ? step.Target : step.Target;
             if (string.IsNullOrWhiteSpace(key))
                 throw new Exception($"{displayName} 缺少 Device/Target 字段");
-            if (!DeviceServices.Devices.ContainsKey(key))
+            if (!DeviceServices.DevicesCfg.ContainsKey(key))
                 throw new Exception($"{displayName} 引用未知设备: {key}");
             if (string.IsNullOrWhiteSpace(step.Command))
                 throw new Exception($"{displayName} 缺少 Command 字段");

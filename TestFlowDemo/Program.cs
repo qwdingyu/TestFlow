@@ -1,7 +1,9 @@
+using CsvDataMaintenance;
 using System;
 using System.IO;
 using System.Windows.Forms;
 using ZL.DeviceLib;
+using ZL.DeviceLib.Example;
 
 namespace TestFlowDemo
 {
@@ -21,9 +23,21 @@ namespace TestFlowDemo
                     udpPort: 2012 // UDP 日志转发端口示例：默认对接监听 2012 端口的收集服务，若无需转发可传入 0 关闭
                 );
 
-                Application.EnableVisualStyles();
-                Application.SetCompatibleTextRenderingDefault(false);
-                Application.Run(new MainForm());
+                //Application.EnableVisualStyles();
+                //Application.SetCompatibleTextRenderingDefault(false);
+                //Application.Run(new MainForm());
+
+                Application.Run(new Frm_SeatTest());
+
+                //Application.Run(new Frm_Csv());
+
+
+                //SiampleRunner.Run();
+                //PlcRunner.Run();
+
+                //NoiseRunner.Run();
+
+                //new SeatTestMain().Run();
             }
             catch (Exception ex)
             {

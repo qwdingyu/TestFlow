@@ -2,16 +2,25 @@
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
 		<TargetFramework>net48</TargetFramework>
-		<LangVersion>7.0</LangVersion>
+		<LangVersion>11.0</LangVersion>
 		<Nullable>disable</Nullable>
 		<AssemblyName>TestFlowDemo</AssemblyName>
 		<UseWindowsForms>true</UseWindowsForms>
 	</PropertyGroup>
 	<ItemGroup>
+		<Compile Remove="Frm_SeatRunner.cs" />
+		<Compile Remove="Frm_SeatRunner.Designer.cs" />
+		<Compile Remove="Frm_SeatTest - 复制.cs" />
+		<Compile Remove="Frm_SeatTest - 复制.Designer.cs" />
+		<Compile Remove="Frm_WorkFlow.cs" />
+		<Compile Remove="Frm_WorkFlow.Designer.cs" />
+		<Compile Remove="LogForm.cs" />
+		<Compile Remove="LogForm.Designer.cs" />
 		<Compile Remove="Program - 复制.cs" />
 		<Compile Remove="TestApp.cs" />
 	</ItemGroup>
 	<ItemGroup>
+		<None Remove="LINE1_OP10_PlcTag.xml" />
 		<None Remove="Storage\Entities.sql" />
 	</ItemGroup>
 	<ItemGroup>
@@ -23,11 +32,17 @@
 		<PackageReference Include="System.Data.SQLite.Core" Version="1.0.118" />
 	</ItemGroup>
 	<ItemGroup>
+		<None Update="devices-all.json">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
 		<None Update="devices.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="Entities.sql">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Flows\E111.json">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<None Update="Flows\E312.json">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -57,9 +72,6 @@
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
-	<ItemGroup>
-	  <Folder Include="docs\" />
-	</ItemGroup>
     <ItemGroup>
       <Compile Remove="Devices\**\*.cs" />
       <Compile Remove="Engine\ParamInjector.cs" />
@@ -76,12 +88,43 @@
       <Compile Remove="AppServices.cs" />
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\Libraries\ZL.DeviceLib\ZL.DeviceLib.csproj" />
-      <ProjectReference Include="..\Libraries\ZL.WorkflowLib\ZL.WorkflowLib.csproj" />
+      <EmbeddedResource Remove="Frm_SeatRunner.resx" />
+      <EmbeddedResource Remove="Frm_SeatTest - 复制.resx" />
+      <EmbeddedResource Remove="Frm_WorkFlow.resx" />
     </ItemGroup>
     <ItemGroup>
+      <Content Include="LINE1_OP10_PlcTag.xml">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\..\ZL.Forms\ZL.Forms.csproj" />
+      <ProjectReference Include="..\Libraries\ZL.DeviceLib\ZL.DeviceLib.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+      <Reference Include="HslCommunication">
+        <HintPath>libs\HslCommunication.dll</HintPath>
+      </Reference>
+      <Reference Include="MySql.Data">
+        <HintPath>..\..\SeatTest\libs\MySql.Data.dll</HintPath>
+      </Reference>
+      <Reference Include="NLog">
+        <HintPath>libs\NLog.dll</HintPath>
+      </Reference>
       <Reference Include="SqlSugar">
         <HintPath>..\Libraries\ZL.DeviceLib\libs\SqlSugar.dll</HintPath>
       </Reference>
+      <Reference Include="ZL.PFLite">
+        <HintPath>libs\ZL.PFLite.dll</HintPath>
+      </Reference>
+      <Reference Include="ZL.PlcBase">
+        <HintPath>libs\ZL.PlcBase.dll</HintPath>
+      </Reference>
+      <Reference Include="ZL.Tag">
+        <HintPath>libs\ZL.Tag.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+    <ItemGroup>
+      <Compile Update="Frm_SeatTest.cs" />
     </ItemGroup>
 </Project>

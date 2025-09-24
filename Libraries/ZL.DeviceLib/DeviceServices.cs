@@ -9,6 +9,7 @@ namespace ZL.DeviceLib
         public static Storage.IDatabaseService Db;
         public static Engine.StepContext Context;
 
-        public static Dictionary<string, DeviceConfig> Devices { get; set; }
+        public static Dictionary<string, DeviceConfig> DevicesCfg { get; set; } = new Dictionary<string, DeviceConfig>();
+        
     }
 }

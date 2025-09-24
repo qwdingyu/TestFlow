@@ -1,0 +1,188 @@
+{
+  "Model": "E111",
+  "TestSteps": [
+    {
+      "Name": "power_on",
+      "Description": "上电",
+      "Type": "Normal",
+      "Target": "ktdy_1",
+      "Command": "SetVolt",
+      "Parameters": {
+        "Cmd": "VOLT 1\n",
+        "voltage": 12.0
+      },
+      "ExpectedResults": {
+        "mode": "equals",
+        "key": "status",
+        "value": "ok"
+      },
+      "TimeoutMs": 2000,
+      "DependsOn": [],
+      "OnSuccess": "start_listen",
+      "OnFailure": "power_off"
+    },
+    {
+      "Name": "noise_start_listen",
+      "Description": "获取噪音开始",
+      "Type": "Normal",
+      "Target": "noise_1",
+      "Command": "StartListening",
+      "Parameters": {
+        "channel": "noise_ch1",
+        "Cmd": "AWAA",
+        "TechRange": "20~70Db"
+      },
+      "ExpectedResults": {
+        "mode": "exists",
+        "key": "status"
+      },
+      "TimeoutMs": 1000,
+      "DependsOn": [ "power_on" ],
+      "OnSuccess": "noise_range_test",
+      "OnFailure": "power_off"
+    },
+    {
+      "Name": "noise_range_test",
+      "Description": "噪音采样",
+      "Type": "Normal",
+      "Target": "noise_1",
+      "Command": "RangeTest",
+      "Parameters": {
+        "channel": "noise_ch1",
+        "Cmd": "AWAa",
+        "durationMs": 3000,
+        "min": 20,
+        "max": 70,
+        "TechRange": "20~70Db"
+      },
+      "ExpectedResults": {
+        "mode": "exists",
+        "key": "status"
+      },
+      "TimeoutMs": 30000,
+      "DependsOn": [ "noise_start_listen" ],
+      "OnSuccess": "noise_stop_listen",
+      "OnFailure": "power_off"
+    },
+    {
+      "Name": "noise_stop_listen",
+      "Description": "噪音测试停止",
+      "Type": "Normal",
+      "Target": "noise_1",
+      "Command": "StopListening",
+      "Parameters": {
+        "channel": "noise_ch1",
+        "Cmd": "AWAa",
+        "durationMs": 3000,
+        "min": 20,
+        "max": 70,
+        "TechRange": "20~70Db"
+      },
+      "ExpectedResults": {
+        "mode": "exists",
+        "key": "status"
+      },
+      "DependsOn": [ "noise_range_test" ],
+      "OnSuccess": "resistance_start_listen",
+      "OnFailure": "power_off"
+    },
+    {
+      "Name": "resistance_start_listen",
+      "Description": "获取电阻开始",
+      "Type": "Normal",
+      "Target": "resistance_1",
+      "Command": "StartListening",
+      "Parameters": {
+        "channel": "resistance_ch",
+        "Cmd": "AWAA",
+        "TechRange": "20~70Db"
+      },
+      "ExpectedResults": {
+        "mode": "exists",
+        "key": "status"
+      },
+      "TimeoutMs": 2000,
+      "DependsOn": [ "power_on" ],
+      "OnSuccess": "resistance_range_test",
+      "OnFailure": "power_off"
+    },
+    {
+      "Name": "resistance_range_test",
+      "Description": "电阻采样",
+      "Type": "Normal",
+      "Target": "resistance_1",
+      "Command": "RangeTest",
+      "Parameters": {
+        "channel": "resistance_ch",
+        "Cmd": "AWAa",
+        "durationMs": 3000,
+        "min": 20,
+        "max": 70,
+        "TechRange": "20~70Db"
+      },
+      "ExpectedResults": {
+        "mode": "exists",
+        "key": "status"
+      },
+      "TimeoutMs": 30000,
+      "DependsOn": [ "resistance_start_listen" ],
+      "OnSuccess": "resistance_stop_listen",
+      "OnFailure": "power_off"
+    },
+    {
+      "Name": "resistance_stop_listen",
+      "Description": "电阻测试停止",
+      "Type": "Normal",
+      "Target": "resistance_1",
+      "Command": "StopListening",
+      "Parameters": {
+        "channel": "resistance_ch",
+        "Cmd": "AWAa",
+        "durationMs": 3000,
+        "min": 20,
+        "max": 70,
+        "TechRange": "20~70Db"
+      },
+      "ExpectedResults": {
+        "mode": "exists",
+        "key": "status"
+      },
+      "DependsOn": [ "resistance_range_test" ],
+      "OnSuccess": "power_off",
+      "OnFailure": "power_off"
+    },
+    {
+      "Name": "power_off",
+      "Description": "下电",
+      "Type": "Normal",
+      "Target": "ktdy_1",
+      "Command": "SetVolt",
+      "Parameters": {
+        "Cmd": "VOLT 0\n",
+        "voltage": 0.0
+      },
+      "ExpectedResults": {
+        "mode": "equals",
+        "key": "status",
+        "value": "ok"
+      },
+      "TimeoutMs": 2000,
+      "DependsOn": [ "stop_listen" ],
+      "OnSuccess": "end_test",
+      "OnFailure": "end_test"
+    },
+    {
+      "Name": "end_test",
+      "Description": "测试结束",
+      "Type": "Normal",
+      "Target": "system",
+      "Command": "Shutdown",
+      "Parameters": {},
+      "ExpectedResults": {},
+      "TimeoutMs": 1000,
+      "DependsOn": [ "power_off" ],
+      "OnSuccess": "",
+      "OnFailure": ""
+    }
+  ]
+}

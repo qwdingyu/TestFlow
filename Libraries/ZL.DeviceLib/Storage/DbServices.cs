@@ -132,6 +132,39 @@ namespace ZL.DeviceLib.Storage
                 .Where(r => r.Id == sessionId)
                 .ExecuteCommand();
         }
+
+        /// <summary>
+        /// 保存测试结果（插入一条新记录）
+        /// </summary>
+        public int SaveSeatResults(SeatResults result)
+        {
+            try
+            {
+                return _db.Insertable(result).ExecuteReturnIdentity();
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error($"[DB] 保存失败: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 更新已有记录（比如修改测试结果或更新时间）
+        /// </summary>
+        public bool UpdateSeatResults(SeatResults result)
+        {
+            return _db.Updateable(result).ExecuteCommand() > 0;
+        }
+
+        /// <summary>
+        /// 查询记录（根据条码）
+        /// </summary>
+        public SeatResults GetSeatResultBySn(string sn)
+        {
+            return _db.Queryable<SeatResults>()
+                      .First(it => it.sn == sn);
+        }
     }
 }
 

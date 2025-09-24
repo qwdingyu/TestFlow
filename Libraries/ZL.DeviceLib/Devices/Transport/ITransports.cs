@@ -1,23 +1,32 @@
 using System;
+using System.Collections.Generic;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace ZL.DeviceLib.Devices.Transport
 {
-    // 鏂囨湰涓插彛浼犺緭鎶借薄
-    public interface ISerialTextTransport
+    public interface ITransport : IDisposable
     {
-        bool IsConnected { get; }
-        void Send(string cmd);
-        string WaitForResponse(Func<string, bool> matcher, int timeoutMs, CancellationToken token);
-    }
+        /// <summary>发送数据</summary>
+        Task<int> SendAsync(ReadOnlyMemory<byte> data, CancellationToken t);
 
-    // CAN 浼犺緭鎶借薄
-    public interface ICanTransport
-    {
-        void Send(CanMessage msg);
-        CanMessage WaitForResponse(Func<CanMessage, bool> matcher, int timeoutMs, CancellationToken token);
+        /// <summary>
+        /// 接收数据帧
+        /// expectedLen = 0 表示用分隔符模式（DelimiterSplitter），>0 表示定长帧（FixedLengthSplitter）
+        /// </summary>
+        Task<IList<ReadOnlyMemory<byte>>> ReceiveAsync(int expectedLen, TimeSpan timeout, CancellationToken token, bool keepAllFrames, byte delimiter = (byte)'\n');
+        Task<IList<string>> ReceiveStringAsync(int expectedLen, TimeSpan timeout, CancellationToken token, bool keepAllFrames, byte delimiter = (byte)'\n', Encoding encoding = null);
 
-        void SetFilter(Func<CanMessage, bool> filter);
+        /// <summary>接收数据帧（自定义Splitter）</summary>
+        Task<IList<ReadOnlyMemory<byte>>> ReceiveAsync(IFrameSplitter splitter, TimeSpan timeout, CancellationToken token, bool keepAllFrames);
+        Task<IList<string>> ReceiveStringAsync(IFrameSplitter splitter, TimeSpan timeout, CancellationToken token, bool keepAllFrames, Encoding encoding = null);
+
+        /// <summary>清空接收缓冲</summary>
+        Task FlushAsync(CancellationToken t);
+
+        /// <summary>设备是否健康</summary>
+        bool IsHealthy();
     }
 }
 
